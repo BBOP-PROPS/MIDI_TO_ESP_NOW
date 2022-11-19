@@ -9,15 +9,8 @@
   copies or substantial portions of the Software.
 *********/
 
-
-
-#ifdef ESP32
-  #include <WiFi.h>
-  #include <esp_now.h>
-#else
-  #include <ESP8266WiFi.h>
-  #include <espnow.h>
-#endif
+#include <esp_now.h>
+#include <WiFi.h>
 
 //Structure example to receive data
 //Must match the sender structure
