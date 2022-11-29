@@ -1,3 +1,62 @@
+#include <MIDI.h>
+#include <esp_now.h>
+#include <WiFi.h>
+
+// Adafruit makes a MIDI board that can work with the ESP32. https://www.adafruit.com/product/4740
+MIDI_CREATE_INSTANCE(HardwareSerial, Serial2, MIDI); // Need to use different serial port for MIDI to avoid conflict with serial debug printing
+// -----------------------------------------------------------------------------
+
+typedef struct midi_struct {
+  byte midiCommand;
+  byte channel;
+  byte pitch;
+  byte velocity;
+} midi_struct;
+
+
+// This function will be automatically called when a NoteOn is received.
+// It must be a void-returning function with the correct parameters,
+// see documentation here:
+// https://github.com/FortySevenEffects/arduino_midi_library/wiki/Using-Callbacks
+
+void handleNoteOn(byte channel, byte pitch, byte velocity)
+{
+  // Do whatever you want when a note is pressed.
+  midi_struct midiData;
+  midiData.midiCommand = 0x90;
+  midiData.channel = channel;
+  midiData.pitch = pitch;
+  midiData.velocity = velocity;
+  esp_err_t result = esp_now_send(0, (uint8_t *) &midiData, sizeof(midiData));
+  // TODO handle error case
+  
+  // Try to keep your callbacks short (no delays ect)
+  // otherwise it would slow down the loop() and have a bad impact
+  // on real-time performance.
+  char buf[100];
+  sprintf(buf, "NoteOn: Channel: %d, Pitch: %d, Velocity: %d", channel, pitch, velocity);
+  Serial.println(buf);
+}
+
+void handleNoteOff(byte channel, byte pitch, byte velocity)
+{
+  // Do something when the note is released.
+  // Note that NoteOn messages with 0 velocity are interpreted as NoteOffs.
+  midi_struct midiData;
+  midiData.midiCommand = 0x80;
+  midiData.channel = channel;
+  midiData.pitch = pitch;
+  midiData.velocity = velocity;
+  esp_err_t result = esp_now_send(0, (uint8_t *) &midiData, sizeof(midiData));
+  // TODO handle error case
+
+  char buf[100];
+  sprintf(buf, "NoteOff: Channel: %d, Pitch: %d, Velocity: %d", channel, pitch, velocity);
+  Serial.println(buf);
+}
+
+// -----------------------------------------------------------------------------
+
 /*********
   Rui Santos
   Complete project details at https://RandomNerdTutorials.com/esp-now-one-to-many-esp32-esp8266/
@@ -9,11 +68,9 @@
   copies or substantial portions of the Software.
 *********/
 
-#include <esp_now.h>
-#include <WiFi.h>
 
 // REPLACE WITH YOUR ESP RECEIVER'S MAC ADDRESS
-uint8_t broadcastAddress1[] = {0x78, 0x21, 0x84, 0x9D, 0xA6, 0x10};
+uint8_t broadcastAddress1[] = {0x94, 0xE6, 0x86, 0x3D, 0x59, 0xB8};
 //78:21:84:9D:A6:10
 //uint8_t broadcastAddress2[] = {0xFF, , , , , };
 //uint8_t broadcastAddress3[] = {0xFF, , , , , };
@@ -72,19 +129,36 @@ void setup() {
   //   Serial.println("Failed to add peer");
   //   return;
   //}
+  
+    // Connect the handleNoteOn function to the library,
+    // so it is called upon reception of a NoteOn.
+    MIDI.setHandleNoteOn(handleNoteOn);  // Put only the name of the function
+
+    // Do the same for NoteOffs
+    MIDI.setHandleNoteOff(handleNoteOff);
+
+    // Initiate MIDI communications, listen to all channels
+    MIDI.begin(MIDI_CHANNEL_OMNI);
 }
  
 void loop() {
-  test.x = random(0,20);
-  test.y = random(0,20);
- 
-  esp_err_t result = esp_now_send(0, (uint8_t *) &test, sizeof(test_struct));
-   
-  if (result == ESP_OK) {
-    Serial.println("Sent with success");
-  }
-  else {
-    Serial.println("Error sending the data");
-  }
-  delay(2000);
-}
+//  test.x = random(0,20);
+//  test.y = random(0,20);
+// 
+//  esp_err_t result = esp_now_send(0, (uint8_t *) &test, sizeof(test_struct));
+//   
+//  if (result == ESP_OK) {
+//    Serial.println("Sent with success");
+//  }
+//  else {
+//    Serial.println("Error sending the data");
+//  }
+//  delay(2000);
+    // Call MIDI.read the fastest you can for real-time performance.
+    MIDI.read();
+
+    // There is no need to check if there are messages incoming
+    // if they are bound to a Callback function.
+    // The attached method will be called automatically
+    // when the corresponding message has been received.
+}    
