@@ -464,11 +464,11 @@
         )
       )
     )
-    (symbol "power:+5V" (power) (pin_names (offset 0)) (in_bom yes) (on_board yes)
+    (symbol "power:+3V3" (power) (pin_names (offset 0)) (in_bom yes) (on_board yes)
       (property "Reference" "#PWR" (id 0) (at 0 -3.81 0)
         (effects (font (size 1.27 1.27)) hide)
       )
-      (property "Value" "+5V" (id 1) (at 0 3.556 0)
+      (property "Value" "+3V3" (id 1) (at 0 3.556 0)
         (effects (font (size 1.27 1.27)))
       )
       (property "Footprint" "" (id 2) (at 0 0 0)
@@ -480,10 +480,10 @@
       (property "ki_keywords" "power-flag" (id 4) (at 0 0 0)
         (effects (font (size 1.27 1.27)) hide)
       )
-      (property "ki_description" "Power symbol creates a global label with name \"+5V\"" (id 5) (at 0 0 0)
+      (property "ki_description" "Power symbol creates a global label with name \"+3V3\"" (id 5) (at 0 0 0)
         (effects (font (size 1.27 1.27)) hide)
       )
-      (symbol "+5V_0_1"
+      (symbol "+3V3_0_1"
         (polyline
           (pts
             (xy -0.762 1.27)
@@ -509,9 +509,9 @@
           (fill (type none))
         )
       )
-      (symbol "+5V_1_1"
+      (symbol "+3V3_1_1"
         (pin power_in line (at 0 0 90) (length 0) hide
-          (name "+5V" (effects (font (size 1.27 1.27))))
+          (name "+3V3" (effects (font (size 1.27 1.27))))
           (number "1" (effects (font (size 1.27 1.27))))
         )
       )
@@ -608,7 +608,7 @@
   )
 
   (junction (at 130.81 69.85) (diameter 0) (color 0 0 0 0)
-    (uuid 5977b7a3-7e62-4b9a-824c-2de370305919)
+    (uuid 0c30d65f-e0a2-45dd-b767-e97ffbc1b08d)
   )
   (junction (at 146.05 77.47) (diameter 0) (color 0 0 0 0)
     (uuid 91b623ca-c77f-433b-9464-da7b6c8ca528)
@@ -636,7 +636,7 @@
   (no_connect (at 179.07 82.55) (uuid 4d63e78b-b885-4ab2-b375-62c92b979c52))
   (no_connect (at 179.07 97.79) (uuid 4d63e78b-b885-4ab2-b375-62c92b979c53))
   (no_connect (at 179.07 100.33) (uuid 4d63e78b-b885-4ab2-b375-62c92b979c54))
-  (no_connect (at 179.07 69.85) (uuid 4d63e78b-b885-4ab2-b375-62c92b979c55))
+  (no_connect (at 179.07 115.57) (uuid 8c6d63da-4394-44f3-b9a2-5add28ae0818))
   (no_connect (at 179.07 110.49) (uuid d3099aa5-e490-4463-b957-0bcdbfe94992))
   (no_connect (at 179.07 113.03) (uuid d3099aa5-e490-4463-b957-0bcdbfe94993))
   (no_connect (at 179.07 102.87) (uuid d3099aa5-e490-4463-b957-0bcdbfe94994))
@@ -704,9 +704,9 @@
     (stroke (width 0) (type default) (color 0 0 0 0))
     (uuid 78295101-a504-4d3b-a92e-65f0333304c3)
   )
-  (wire (pts (xy 165.1 115.57) (xy 179.07 115.57))
+  (wire (pts (xy 176.53 69.85) (xy 179.07 69.85))
     (stroke (width 0) (type default) (color 0 0 0 0))
-    (uuid 7c3b0c46-22ab-4ca9-9ef9-26835b979e0f)
+    (uuid 950a14a7-3909-45c0-8788-49772ffb7b16)
   )
   (wire (pts (xy 62.23 67.31) (xy 69.85 72.39))
     (stroke (width 0) (type default) (color 0 0 0 0))
@@ -750,6 +750,22 @@
     (property "Intersheet References" "${INTERSHEET_REFS}" (id 0) (at 269.2945 97.7106 0)
       (effects (font (size 1.27 1.27)) (justify left) hide)
     )
+  )
+
+  (symbol (lib_id "power:+3V3") (at 130.81 69.85 0) (unit 1)
+    (in_bom yes) (on_board yes) (fields_autoplaced)
+    (uuid 19cb6b6a-fdd0-4db0-8046-677b75254de1)
+    (property "Reference" "#PWR0101" (id 0) (at 130.81 73.66 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Value" "+3V3" (id 1) (at 130.81 64.77 0))
+    (property "Footprint" "" (id 2) (at 130.81 69.85 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (property "Datasheet" "" (id 3) (at 130.81 69.85 0)
+      (effects (font (size 1.27 1.27)) hide)
+    )
+    (pin "1" (uuid a84e0cb6-6383-441a-ad53-a634ab105642))
   )
 
   (symbol (lib_id "Device:R_Small_US") (at 146.05 72.39 0) (unit 1)
@@ -870,20 +886,20 @@
     (pin "9" (uuid 71080c7e-a51c-4b21-b542-ce1e09a92761))
   )
 
-  (symbol (lib_id "power:+5V") (at 130.81 69.85 0) (unit 1)
+  (symbol (lib_id "power:+3V3") (at 176.53 69.85 0) (unit 1)
     (in_bom yes) (on_board yes) (fields_autoplaced)
-    (uuid 8aaeb1e4-5a1c-433d-9382-2cc32e56a354)
-    (property "Reference" "#PWR01" (id 0) (at 130.81 73.66 0)
+    (uuid 86bb63e4-bce5-4573-ba4a-d78fbe2cc261)
+    (property "Reference" "#PWR?" (id 0) (at 176.53 73.66 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Value" "+5V" (id 1) (at 130.81 64.77 0))
-    (property "Footprint" "" (id 2) (at 130.81 69.85 0)
+    (property "Value" "+3V3" (id 1) (at 176.53 64.77 0))
+    (property "Footprint" "" (id 2) (at 176.53 69.85 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Datasheet" "" (id 3) (at 130.81 69.85 0)
+    (property "Datasheet" "" (id 3) (at 176.53 69.85 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (pin "1" (uuid fa849df9-dad4-404f-9566-00dbcc920af5))
+    (pin "1" (uuid f97122b9-39e8-463c-967d-0055c8c8fc33))
   )
 
   (symbol (lib_id "pspice:DIODE") (at 58.42 72.39 90) (unit 1)
@@ -961,38 +977,22 @@
     (pin "1" (uuid 84dc4904-afa3-4772-b20f-8d6bcb701313))
   )
 
-  (symbol (lib_id "power:+5V") (at 165.1 115.57 0) (unit 1)
-    (in_bom yes) (on_board yes) (fields_autoplaced)
-    (uuid f219ead5-5cac-4773-812c-bca3b64657fb)
-    (property "Reference" "#PWR03" (id 0) (at 165.1 119.38 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Value" "+5V" (id 1) (at 165.1 110.49 0))
-    (property "Footprint" "" (id 2) (at 165.1 115.57 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Datasheet" "" (id 3) (at 165.1 115.57 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (pin "1" (uuid 9c924bfc-846f-4aa2-8893-6c97da132e61))
-  )
-
   (sheet_instances
     (path "/" (page "1"))
   )
 
   (symbol_instances
-    (path "/8aaeb1e4-5a1c-433d-9382-2cc32e56a354"
-      (reference "#PWR01") (unit 1) (value "+5V") (footprint "")
-    )
     (path "/efec6caf-ab5c-4e9e-b71a-caeb1937d304"
       (reference "#PWR02") (unit 1) (value "GND") (footprint "")
     )
-    (path "/f219ead5-5cac-4773-812c-bca3b64657fb"
-      (reference "#PWR03") (unit 1) (value "+5V") (footprint "")
-    )
     (path "/458f86eb-a381-40a0-816e-39a6ea7078c1"
       (reference "#PWR04") (unit 1) (value "GND") (footprint "")
+    )
+    (path "/19cb6b6a-fdd0-4db0-8046-677b75254de1"
+      (reference "#PWR0101") (unit 1) (value "+3V3") (footprint "")
+    )
+    (path "/86bb63e4-bce5-4573-ba4a-d78fbe2cc261"
+      (reference "#PWR?") (unit 1) (value "+3V3") (footprint "")
     )
     (path "/af11a576-d68f-4cdc-8cca-580db2389094"
       (reference "D1") (unit 1) (value "DIODE") (footprint "Diode_THT:D_T-1_P5.08mm_Horizontal")
