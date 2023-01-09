@@ -1,0 +1,7 @@
+Designator,Footprint,Quantity,Value,LCSC Part #
+D1,D_T-1_P5.08mm_Horizontal,1,DIODE,
+J1,CUI_SDS-50J,1,SDS-50J,
+R1,R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal,1,220Ω,
+R2,R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal,1,270Ω,
+U1,H11L1M,1,H11L1M,
+U2,ESP32-DevKitC,1,ESP32-DevKitC,

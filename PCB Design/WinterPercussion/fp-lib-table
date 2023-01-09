@@ -1,0 +1,4 @@
+(fp_lib_table
+  (lib (name "Espressif")(type "KiCad")(uri "/Users/sdial/Documents/KiCad/6.0/footprints/Espressif.pretty")(options "")(descr ""))
+  (lib (name "OptoCoupler")(type "KiCad")(uri "/Users/sdial/Documents/GitHub/MIDI_TO_ESP_NOW/PCB Design/6N138")(options "")(descr ""))
+)
