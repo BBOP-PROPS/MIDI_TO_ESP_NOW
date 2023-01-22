@@ -4,7 +4,6 @@
 
 // Adafruit makes a MIDI board that can work with the ESP32. https://www.adafruit.com/product/4740
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial2, MIDI); // Need to use different serial port for MIDI to avoid conflict with serial debug printing
-// -----------------------------------------------------------------------------
 
 typedef struct midi_struct {
   byte midiCommand;
@@ -12,7 +11,6 @@ typedef struct midi_struct {
   byte pitch;
   byte velocity;
 } midi_struct;
-
 
 // This function will be automatically called when a NoteOn is received.
 // It must be a void-returning function with the correct parameters,
@@ -40,6 +38,7 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
 
 void handleNoteOff(byte channel, byte pitch, byte velocity)
 {
+#if 0
   // Do something when the note is released.
   // Note that NoteOn messages with 0 velocity are interpreted as NoteOffs.
   midi_struct midiData;
@@ -53,6 +52,7 @@ void handleNoteOff(byte channel, byte pitch, byte velocity)
   char buf[100];
   sprintf(buf, "NoteOff: Channel: %d, Pitch: %d, Velocity: %d", channel, pitch, velocity);
   Serial.println(buf);
+#endif
 }
 
 // -----------------------------------------------------------------------------
@@ -69,19 +69,10 @@ void handleNoteOff(byte channel, byte pitch, byte velocity)
 *********/
 
 // REPLACE WITH YOUR ESP RECEIVER'S MAC ADDRESS
-//uint8_t broadcastAddress1[] = {0x94, 0xE6, 0x86, 0x3D, 0x59, 0xB8}; // Mark's receiver
-uint8_t broadcastAddress1[] = {0x40, 0x22, 0xD8, 0x03, 0xC3, 0xE0}; // Ring1
-//uint8_t broadcastAddress1[] = {0x40, 0x22, 0xD8, 0x02, 0x82, 0x24}; // Not installed as of 1/19/2023
-//78:21:84:9D:A6:10
-//uint8_t broadcastAddress2[] = {0xFF, , , , , };
-//uint8_t broadcastAddress3[] = {0xFF, , , , , };
-
-typedef struct test_struct {
-  int x;
-  int y;
-} test_struct;
-
-test_struct test;
+uint8_t broadcastAddress1[] = {0x40, 0x22, 0xD8, 0x02, 0x82, 0x24}; // Ring A
+uint8_t broadcastAddress2[] = {0x40, 0x22, 0xD8, 0x09, 0x5C, 0x28}; // Ring B
+uint8_t broadcastAddress3[] = {0x40, 0x22, 0xD8, 0x03, 0xC3, 0xE0}; // Ring C
+uint8_t broadcastAddress4[] = {0x94, 0xE6, 0x86, 0x3D, 0x59, 0xB8}; // Mark's receiver
 
 esp_now_peer_info_t peerInfo;
 
@@ -99,7 +90,8 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
  
 void setup() {
   Serial.begin(115200);
- 
+
+  delay(2000); // Give time for the power to settle down before starting the radio
   WiFi.mode(WIFI_STA);
  
   if (esp_now_init() != ESP_OK) {
@@ -120,47 +112,35 @@ void setup() {
     return;
   }
   // register second peer  
-  // memcpy(peerInfo.peer_addr, broadcastAddress2, 6);
-  // if (esp_now_add_peer(&peerInfo) != ESP_OK){
-  //   Serial.println("Failed to add peer");
-  //   return;
-  // }
+  memcpy(peerInfo.peer_addr, broadcastAddress2, 6);
+  if (esp_now_add_peer(&peerInfo) != ESP_OK){
+    Serial.println("Failed to add peer");
+    return;
+   }
   // /// register third peer
-  // memcpy(peerInfo.peer_addr, broadcastAddress3, 6);
-  // if (esp_now_add_peer(&peerInfo) != ESP_OK){
-  //   Serial.println("Failed to add peer");
-  //   return;
-  //}
+  memcpy(peerInfo.peer_addr, broadcastAddress3, 6);
+  if (esp_now_add_peer(&peerInfo) != ESP_OK){
+    Serial.println("Failed to add peer");
+    return;
+  }
   
-    // Connect the handleNoteOn function to the library,
-    // so it is called upon reception of a NoteOn.
-    MIDI.setHandleNoteOn(handleNoteOn);  // Put only the name of the function
+  // Connect the handleNoteOn function to the library,
+  // so it is called upon reception of a NoteOn.
+  MIDI.setHandleNoteOn(handleNoteOn);  // Put only the name of the function
 
-    // Do the same for NoteOffs
-    MIDI.setHandleNoteOff(handleNoteOff);
+  // Do the same for NoteOffs
+  MIDI.setHandleNoteOff(handleNoteOff);
 
-    // Initiate MIDI communications, listen to all channels
-    MIDI.begin(MIDI_CHANNEL_OMNI);
+  // Initiate MIDI communications, listen to all channels
+  MIDI.begin(MIDI_CHANNEL_OMNI);
 }
  
 void loop() {
-//  test.x = random(0,20);
-//  test.y = random(0,20);
-// 
-//  esp_err_t result = esp_now_send(0, (uint8_t *) &test, sizeof(test_struct));
-//   
-//  if (result == ESP_OK) {
-//    Serial.println("Sent with success");
-//  }
-//  else {
-//    Serial.println("Error sending the data");
-//  }
-//  delay(2000);
-    // Call MIDI.read the fastest you can for real-time performance.
-    MIDI.read();
+  // Call MIDI.read the fastest you can for real-time performance.
+  MIDI.read();
 
-    // There is no need to check if there are messages incoming
-    // if they are bound to a Callback function.
-    // The attached method will be called automatically
-    // when the corresponding message has been received.
+  // There is no need to check if there are messages incoming
+  // if they are bound to a Callback function.
+  // The attached method will be called automatically
+  // when the corresponding message has been received.
 }    

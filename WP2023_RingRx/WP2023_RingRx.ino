@@ -16,7 +16,6 @@
 
 #define NUM_LEDS 300
 
-
 uint32_t colors[] = {
         CRGB::AliceBlue,
         CRGB::Amethyst,
@@ -173,15 +172,6 @@ typedef struct midi_struct {
   byte velocity;
 } midi_struct;
 
-//Structure example to receive data
-//Must match the sender structure
-typedef struct test_struct {
-  int x;
-  int y;
-} test_struct;
-
-//Create a struct_message called myData
-test_struct myData;
 
 //callback function that will be executed when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
@@ -199,12 +189,6 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
       fill_solid(leds, NUM_LEDS, colors[ledIndex]);
       FastLED.show();
     }
-    else
-    {
-//      color = strip.Color(  0,   0,   0,   0); // Off
-    }
-//    strip.setPixelColor(ledIndex, color);         //  Set pixel's color (in RAM)
-//    strip.show();
   }
 
   Serial.print("Bytes received: ");
@@ -214,21 +198,24 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   Serial.print("command: ");
   Serial.println(midiData.midiCommand);
   Serial.println();
-
-//  memcpy(&myData, incomingData, sizeof(myData));
-//  Serial.print("Bytes received: ");
-//  Serial.println(len);
-//  Serial.print("x: ");
-//  Serial.println(myData.x);
-//  Serial.print("y: ");
-//  Serial.println(myData.y);
-//  Serial.println();
 }
  
 void setup() {
   //Initialize Serial Monitor
   Serial.begin(115200);
   
+  // sanity check delay - allows reprogramming if accidently blowing power w/leds
+  delay(2000);
+  FastLED.addLeds<WS2812B, 23, GRB>(leds, NUM_LEDS);  // GRB ordering is typical
+  FastLED.addLeds<WS2812B, 25, GRB>(leds, NUM_LEDS);  // GRB ordering is typical
+  FastLED.addLeds<WS2812B, 26, GRB>(leds, NUM_LEDS);  // GRB ordering is typical
+  FastLED.addLeds<WS2812B, 27, GRB>(leds, NUM_LEDS);  // GRB ordering is typical
+  FastLED.addLeds<WS2812B, 32, GRB>(leds, NUM_LEDS);  // GRB ordering is typical
+  FastLED.setBrightness(30);
+  fill_solid(leds, NUM_LEDS, CRGB::Black); // Want to make sure all the LEDs are off before starting the radio
+  FastLED.show();
+
+  delay(1000); // Wait a bit for the power to settle before starting the radio
   //Set device as a Wi-Fi Station
   WiFi.mode(WIFI_STA);
 
@@ -237,23 +224,9 @@ void setup() {
     Serial.println("Error initializing ESP-NOW");
     return;
   }
-  
   // Once ESPNow is successfully Init, we will register for recv CB to
   // get recv packer info
   esp_now_register_recv_cb(OnDataRecv);
-
-  // sanity check delay - allows reprogramming if accidently blowing power w/leds
-  delay(2000);
-  FastLED.addLeds<WS2812B, 23, GRB>(leds, NUM_LEDS);  // GRB ordering is typical
-  FastLED.addLeds<WS2812B, 25, GRB>(leds, NUM_LEDS);  // GRB ordering is typical
-  FastLED.addLeds<WS2812B, 26, GRB>(leds, NUM_LEDS);  // GRB ordering is typical
-  FastLED.addLeds<WS2812B, 27, GRB>(leds, NUM_LEDS);  // GRB ordering is typical
-  FastLED.addLeds<WS2812B, 32, GRB>(leds, NUM_LEDS);  // GRB ordering is typical
-
-  FastLED.setBrightness(30);
-
-  fill_solid(leds, NUM_LEDS, CRGB::Black);
-  FastLED.show();
 }
  
 void loop() {
