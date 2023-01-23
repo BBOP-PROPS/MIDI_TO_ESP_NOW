@@ -206,11 +206,11 @@ void setup() {
   
   // sanity check delay - allows reprogramming if accidently blowing power w/leds
   delay(2000);
-  FastLED.addLeds<WS2812B, 23, GRB>(leds, NUM_LEDS);  // GRB ordering is typical
-  FastLED.addLeds<WS2812B, 25, GRB>(leds, NUM_LEDS);  // GRB ordering is typical
-  FastLED.addLeds<WS2812B, 26, GRB>(leds, NUM_LEDS);  // GRB ordering is typical
-  FastLED.addLeds<WS2812B, 27, GRB>(leds, NUM_LEDS);  // GRB ordering is typical
-  FastLED.addLeds<WS2812B, 32, GRB>(leds, NUM_LEDS);  // GRB ordering is typical
+  FastLED.addLeds<WS2812B, 23, RGB>(leds, NUM_LEDS);
+  FastLED.addLeds<WS2812B, 25, RGB>(leds, NUM_LEDS);
+  FastLED.addLeds<WS2812B, 26, RGB>(leds, NUM_LEDS);
+  FastLED.addLeds<WS2812B, 27, RGB>(leds, NUM_LEDS);
+  FastLED.addLeds<WS2812B, 32, RGB>(leds, NUM_LEDS);
   FastLED.setBrightness(30);
   fill_solid(leds, NUM_LEDS, CRGB::Black); // Want to make sure all the LEDs are off before starting the radio
   FastLED.show();
