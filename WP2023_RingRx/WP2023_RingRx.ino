@@ -16,6 +16,19 @@
 
 #define NUM_LEDS 300
 
+#define PRACTICE_MODE_PIN 16
+#define TEST_MODE_PIN 17
+
+#define HIGH_BRIGHTNESS 255
+#define LOW_BRIGHTNESS 10
+enum mode_e
+{
+  SHOW = 0,
+  PRACTICE,
+  TEST
+};
+mode_e displayMode = SHOW;
+
 uint32_t colors[] = {
         CRGB::AliceBlue,
         CRGB::Amethyst,
@@ -203,6 +216,11 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
 void setup() {
   //Initialize Serial Monitor
   Serial.begin(115200);
+
+  // Use pins 16 and 17 for toggle switch
+  pinMode(PRACTICE_MODE_PIN, INPUT_PULLUP);
+  pinMode(TEST_MODE_PIN, INPUT_PULLUP);
+  
   
   // sanity check delay - allows reprogramming if accidently blowing power w/leds
   delay(2000);
@@ -211,7 +229,7 @@ void setup() {
   FastLED.addLeds<WS2812B, 26, RGB>(leds, NUM_LEDS);
   FastLED.addLeds<WS2812B, 27, RGB>(leds, NUM_LEDS);
   FastLED.addLeds<WS2812B, 32, RGB>(leds, NUM_LEDS);
-  FastLED.setBrightness(30);
+  FastLED.setBrightness(LOW_BRIGHTNESS);
   fill_solid(leds, NUM_LEDS, CRGB::Black); // Want to make sure all the LEDs are off before starting the radio
   FastLED.show();
 
@@ -230,4 +248,54 @@ void setup() {
 }
  
 void loop() {
+  EVERY_N_MILLISECONDS(2000) { checkToggleSwitch(); }
+  if (displayMode == TEST)
+  {
+    testPattern();
+  }
+}
+
+void checkToggleSwitch(void)
+{
+  mode_e tmpMode = SHOW;
+  if (digitalRead(PRACTICE_MODE_PIN) == 0)
+  {
+    tmpMode = PRACTICE;
+  }
+  else if (digitalRead(TEST_MODE_PIN) == 0)
+  {
+    tmpMode = TEST;
+  }
+  if (tmpMode != displayMode)
+  {
+    displayMode = tmpMode;
+    switch (displayMode)
+    {
+      case SHOW:
+        FastLED.setBrightness(HIGH_BRIGHTNESS);
+      break;
+      case PRACTICE:
+        FastLED.setBrightness(LOW_BRIGHTNESS);
+      break;
+      case TEST:
+        FastLED.setBrightness(LOW_BRIGHTNESS);
+      break;
+      default: // This should never happen but it's good coding practice to have a default
+      break;
+    }
+  }
+}
+
+#define TEST_PATTERN_DELAY 1000
+void testPattern(void)
+{
+  fill_solid(leds, NUM_LEDS, CRGB::Red);
+  FastLED.show();
+  delay(TEST_PATTERN_DELAY); // Note that using delay() prevents FastLED from updating for the delay period. This is intenional here.
+  fill_solid(leds, NUM_LEDS, CRGB::Green);
+  FastLED.show();
+  delay(TEST_PATTERN_DELAY);
+  fill_solid(leds, NUM_LEDS, CRGB::Blue);
+  FastLED.show();
+  delay(TEST_PATTERN_DELAY);
 }
