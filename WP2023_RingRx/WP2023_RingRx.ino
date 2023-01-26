@@ -27,7 +27,7 @@ enum mode_e
   PRACTICE,
   TEST
 };
-mode_e displayMode = SHOW;
+mode_e displayMode = PRACTICE;
 
 uint32_t colors[] = {
         CRGB::AliceBlue,
@@ -283,6 +283,7 @@ void checkToggleSwitch(void)
       default: // This should never happen but it's good coding practice to have a default
       break;
     }
+    FastLED.show();
   }
 }
 
