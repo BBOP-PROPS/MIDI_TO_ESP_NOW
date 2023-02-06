@@ -1,3 +1,8 @@
+// Brownsburg High School Winter Percussion 2023 LED controller
+// Mark Nierzwick
+// Scott Dial
+// ESP-now example from Rui Santos
+
 /*********
   Rui Santos
   Complete project details at https://RandomNerdTutorials.com/esp-now-one-to-many-esp32-esp8266/
@@ -13,6 +18,8 @@
 #include <WiFi.h>
 #include <FastLED.h>
 
+//#define TEST_AT_HOME
+
 // This section should be common to both the receiver and transmitter
 enum ledCommand_e : byte
 {
@@ -27,8 +34,6 @@ typedef struct ledCommand_struct
 };
 // End common section
 
-//#define TEST_AT_HOME
-
 #define NUM_LEDS 300
 
 #define PRACTICE_MODE_PIN 16
@@ -36,6 +41,7 @@ typedef struct ledCommand_struct
 
 #define HIGH_BRIGHTNESS 255
 #define LOW_BRIGHTNESS 10
+#define TIMEOUT_PERIOD_MSEC 60 * 5 * 1000
 
 enum mode_e
 {
@@ -61,6 +67,7 @@ CRGB leds[NUM_LEDS];
 
 bool newCommandReceived = false;
 ledCommand_struct ledCommand;
+unsigned long lastCommandTime = 0;
 
 //callback function that will be executed when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
@@ -128,16 +135,22 @@ void setup() {
 }
  
 void loop() {
+  if (millis() - lastCommandTime > TIMEOUT_PERIOD_MSEC)
+  {
+    targetPalette = black_gp;
+  }
   EVERY_N_MILLISECONDS(2000) { checkToggleSwitch(); }
   if (displayMode == TEST)
   {
     testPattern();
+    lastCommandTime = millis(); // Don't timeout in test mode
   }
 
   if (newCommandReceived)
   {
     newCommandReceived = false;
     processNewCommand();
+    lastCommandTime = millis();
   }
   
   for (int i = 0; i < NUM_LEDS; i++)
@@ -145,7 +158,7 @@ void loop() {
     leds[i] = ColorFromPalette(currentPalette, colorIndex[i]);
   }
   nblendPaletteTowardPalette(currentPalette, targetPalette, 80);
-  EVERY_N_MILLISECONDS(20)
+  EVERY_N_MILLISECONDS(20) // TODO need to move this out of loop to make it easier to add effects
   {
     for (int i = 0; i < NUM_LEDS; i++)
     {
