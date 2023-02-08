@@ -26,6 +26,7 @@ enum ledCommand_e : byte
 {
   SOLID_COLOR = 1,
   CHUNKY,
+  FLASH
 };
 
 typedef struct ledCommand_struct
@@ -111,6 +112,12 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
       ledCommand.data[0] = 0;
       ledCommand.data[1] = 0;
       ledCommand.data[2] = 0;
+      break;
+    case 73: // Flash
+      ledCommand.command = FLASH;
+      ledCommand.data[0] = 0xE9;
+      ledCommand.data[1] = 0xE9;
+      ledCommand.data[2] = 0xA0;
       break;
     default:
       broadcastCommand = false;
@@ -236,7 +243,7 @@ void setup() {
     Serial.println("Failed to add peer");
     return;
   }
-  
+
   // Connect the handleNoteOn function to the library,
   // so it is called upon reception of a NoteOn.
   MIDI.setHandleNoteOn(handleNoteOn);  // Put only the name of the function

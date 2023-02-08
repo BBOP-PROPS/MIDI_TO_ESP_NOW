@@ -25,6 +25,7 @@ enum ledCommand_e : byte
 {
   SOLID_COLOR = 1,
   CHUNKY,
+  FLASH
 };
 
 typedef struct ledCommand_struct
@@ -61,6 +62,7 @@ DEFINE_GRADIENT_PALETTE( black_gp ) {
 
 CRGBPalette16 currentPalette(black_gp);
 CRGBPalette16 targetPalette(black_gp);
+uint8_t blendSpeed = 80;
 
 // This is an array of leds.  One item for each led in your strip.
 CRGB leds[NUM_LEDS];
@@ -157,7 +159,7 @@ void loop() {
   {
     leds[i] = ColorFromPalette(currentPalette, colorIndex[i]);
   }
-  nblendPaletteTowardPalette(currentPalette, targetPalette, 80);
+  nblendPaletteTowardPalette(currentPalette, targetPalette, blendSpeed);
   EVERY_N_MILLISECONDS(20) // TODO need to move this out of loop to make it easier to add effects
   {
     for (int i = 0; i < NUM_LEDS; i++)
@@ -211,11 +213,17 @@ void processNewCommand(void)
       Serial.println(ledCommand.data[0]);
       Serial.println(ledCommand.data[1]);
       Serial.println(ledCommand.data[2]);
-      setCurrentPaletteRGB(ledCommand.data[0], ledCommand.data[1], ledCommand.data[2]);
+      setTargetPaletteRGB(ledCommand.data[0], ledCommand.data[1], ledCommand.data[2]);
+      blendSpeed = 80;
     }
       break;
     case CHUNKY:
-      setCurrentPalette(ledCommand.data, sizeof(ledCommand.data));
+      setTargetPalette(ledCommand.data, sizeof(ledCommand.data));
+      blendSpeed = 80;
+      break;
+    case FLASH:
+      setCurrentPaletteRGB(ledCommand.data[0], ledCommand.data[1], ledCommand.data[2]);
+      blendSpeed = 255;
       break;
     default:
       Serial.println("processCommand: Unknown command");
@@ -223,7 +231,7 @@ void processNewCommand(void)
   }
 }
 
-void setCurrentPaletteRGB(byte r, byte g, byte b)
+void setTargetPaletteRGB(byte r, byte g, byte b)
 {
   byte bytes[8];
   
@@ -238,7 +246,22 @@ void setCurrentPaletteRGB(byte r, byte g, byte b)
   targetPalette.loadDynamicGradientPalette(bytes);
 }
 
-void setCurrentPalette(byte* bytes, int len)
+void setCurrentPaletteRGB(byte r, byte g, byte b)
+{
+  byte bytes[8];
+  
+  bytes[0] = 0;
+  bytes[1] = r;
+  bytes[2] = g;
+  bytes[3] = b;
+  bytes[4] = 255;
+  bytes[5] = r;
+  bytes[6] = g;
+  bytes[7] = b;
+  currentPalette.loadDynamicGradientPalette(bytes);
+}
+
+void setTargetPalette(byte* bytes, int len)
 {
   if (len % 4 != 0)
   {
