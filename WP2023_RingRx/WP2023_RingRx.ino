@@ -16,7 +16,7 @@
 
 #include <esp_now.h>
 #include <WiFi.h>
-#include <FastLED.h>
+#include <FastLED.h> // Using version 3.3.3 of FastLED to overcome a bug in the newer versions of the library
 
 //#define TEST_AT_HOME
 
@@ -30,8 +30,9 @@ enum ledCommand_e : byte
 
 typedef struct ledCommand_struct
 {
-  byte command;
-  byte data[16];
+  byte effect;
+  uint16_t blendSpeedMSec;
+  byte data[24];
 };
 // End common section
 
@@ -62,7 +63,6 @@ DEFINE_GRADIENT_PALETTE( black_gp ) {
 
 CRGBPalette16 currentPalette(black_gp);
 CRGBPalette16 targetPalette(black_gp);
-uint8_t blendSpeed = 80;
 
 // This is an array of leds.  One item for each led in your strip.
 CRGB leds[NUM_LEDS];
@@ -70,6 +70,8 @@ CRGB leds[NUM_LEDS];
 bool newCommandReceived = false;
 ledCommand_struct ledCommand;
 unsigned long lastCommandTime = 0;
+byte activeEffect = 0;
+uint16_t activeBlendTimeMSec = 2000;
 
 //callback function that will be executed when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
@@ -155,21 +157,64 @@ void loop() {
     lastCommandTime = millis();
   }
   
-  for (int i = 0; i < NUM_LEDS; i++)
+  EVERY_N_MILLISECONDS(20)
   {
-    leds[i] = ColorFromPalette(currentPalette, colorIndex[i]);
+    updateEffect();
+//    digitalWrite(22, HIGH);
+    FastLED.show(); // 19 msec with V3.5 and 9 msec with 3.3.3
+//    digitalWrite(22, LOW);
   }
-  nblendPaletteTowardPalette(currentPalette, targetPalette, blendSpeed);
-  EVERY_N_MILLISECONDS(20) // TODO need to move this out of loop to make it easier to add effects
+}
+
+void updateEffect(void)
+{
+  updateBlend();
+  switch(activeEffect)
   {
-    for (int i = 0; i < NUM_LEDS; i++)
+    case SOLID_COLOR:
+      {
+        for (int i = 0; i < NUM_LEDS; i++)
+        {
+          leds[i] = ColorFromPalette(currentPalette, 0);
+        }
+      }
+      break;
+    case CHUNKY:
+      {
+        for (int i = 0; i < NUM_LEDS; i++)
+        {
+          colorIndex[i] += 2;
+        }
+        for (int i = 0; i < NUM_LEDS; i++)
+        {
+          leds[i] = ColorFromPalette(currentPalette, colorIndex[i]);
+        }
+      }
+      break;
+    default:
+      break;  
+  }
+}
+
+void updateBlend(void)
+{
+  if (activeBlendTimeMSec <= 100)
+  {
+    currentPalette = targetPalette;
+  }
+  else
+  {
+    // TODO need a better algorithm to get better resolution with integer math
+    // TODO break out into separate function to set the blend factors so don't have to re-calculate every time
+    int intervals = activeBlendTimeMSec / 20;
+    if (intervals == 0) intervals = 1;
+    int blends = 255 / intervals;
+    if (blends == 0) blends = 1;
+    for (int i = 0; i < blends; i++)
     {
-      colorIndex[i] += 2;
+      nblendPaletteTowardPalette(currentPalette, targetPalette);
     }
   }
-//  digitalWrite(22, HIGH);
-  FastLED.show(); // 19 msec with V3.5 and 9 msec with 3.3.3
-//  digitalWrite(22, LOW);
 }
 
 void checkToggleSwitch(void)
@@ -206,7 +251,7 @@ void checkToggleSwitch(void)
 
 void processNewCommand(void)
 {
-  switch(ledCommand.command)
+  switch(ledCommand.effect)
   {
     case SOLID_COLOR:
     {
@@ -214,16 +259,18 @@ void processNewCommand(void)
       Serial.println(ledCommand.data[1]);
       Serial.println(ledCommand.data[2]);
       setTargetPaletteRGB(ledCommand.data[0], ledCommand.data[1], ledCommand.data[2]);
-      blendSpeed = 80;
+      activeEffect = ledCommand.effect;
+      activeBlendTimeMSec = ledCommand.blendSpeedMSec;
     }
       break;
     case CHUNKY:
       setTargetPalette(ledCommand.data, sizeof(ledCommand.data));
-      blendSpeed = 80;
+      activeEffect = ledCommand.effect;
+      activeBlendTimeMSec = ledCommand.blendSpeedMSec;
       break;
     case FLASH:
       setCurrentPaletteRGB(ledCommand.data[0], ledCommand.data[1], ledCommand.data[2]);
-      blendSpeed = 255;
+      activeBlendTimeMSec = ledCommand.blendSpeedMSec;
       break;
     default:
       Serial.println("processCommand: Unknown command");

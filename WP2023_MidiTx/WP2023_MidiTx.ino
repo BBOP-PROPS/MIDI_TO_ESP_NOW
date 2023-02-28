@@ -17,7 +17,7 @@
 #include <MIDI.h>
 #include <esp_now.h>
 #include <WiFi.h>
-#include <FastLED.h>
+#include <FastLED.h> // Using version 3.3.3 of FastLED to overcome a bug in the newer versions of the library
 
 //#define TEST_AT_HOME
 
@@ -31,10 +31,13 @@ enum ledCommand_e : byte
 
 typedef struct ledCommand_struct
 {
-  byte command; // TODO consider adding blend speed
-  byte data[16]; // TODO try using a union
+  byte effect;
+  uint16_t blendSpeedMSec;
+  byte data[24]; // TODO try using a union
 };
 // End common section
+
+#define DEFAULT_BLEND_SPEED 2000
 
 #ifdef TEST_AT_HOME
 const uint8_t broadcastAddress1[] = {0x94, 0xE6, 0x86, 0x3B, 0x5E, 0x3C}; // Mark's receiver
@@ -55,10 +58,16 @@ typedef struct midi_struct {
   byte velocity;
 } midi_struct;
 
-const ledCommand_struct neutralPalette = { CHUNKY, { 0, 0xE9, 0xE9, 0xA0, 81, 0x40, 0x40, 0x40, 165, 0xFF, 0xFF, 0xB0, 255, 0xE9, 0xE9, 0xA0 } };
-const ledCommand_struct happyPalette = { CHUNKY, { 0, 0xFF, 0x99, 0x00, 130, 0xFF, 0xB0, 0x00, 220, 0x80, 0x4D, 0x00, 255, 0xFF, 0x99, 0x00 } };
-const ledCommand_struct sadPalette = { CHUNKY, { 0, 0x00, 0x00, 0xFF, 81, 0x30, 0x30, 0xFA, 165, 0x00, 0x00, 0x93, 255, 0x00, 0x00, 0xFF } };
-const ledCommand_struct angryPalette = { CHUNKY, { 0, 0xFF, 0x00, 0x00, 120, 0xFF, 0x20, 0x00, 125, 0xC0, 0x00, 0x00, 255, 0xFF, 0x00, 0x00 } };
+const ledCommand_struct introPalette = { CHUNKY, DEFAULT_BLEND_SPEED, { 0, 0xFF, 0x99, 0x00, 130, 0x50, 0x30, 0x00, 180, 0x80, 0x4D, 0x00, 255, 0xFF, 0x99, 0x00 } };
+const ledCommand_struct goldenHourPalette = { CHUNKY, DEFAULT_BLEND_SPEED, { 0, 0xFF, 0x00, 0x00, 35, 0xFF, 0x3C, 0x48, 61, 0xFF, 0x30, 0x30, 105, 0xFC, 0x05, 0x30, 150, 0xFF, 0x00, 0x00, 255, 0xFF, 0x00, 0x00 } };
+const ledCommand_struct lightBluePalette = { CHUNKY, DEFAULT_BLEND_SPEED, { 0, 0x20, 0x20, 0x80, 81, 0x30, 0x30, 0x80, 165, 0x10, 0x10, 0x40, 255, 0x20, 0x20, 0x80 } };
+const ledCommand_struct darkBluePalette = { CHUNKY, DEFAULT_BLEND_SPEED, { 0, 0x00, 0x00, 0xFF, 81, 0x00, 0x00, 0x80, 135, 0x00, 0x00, 0x40, 165, 0x00, 0x00, 0xFF, 255, 0x00, 0x00, 0xFF } };
+const ledCommand_struct greenPalette = { CHUNKY, DEFAULT_BLEND_SPEED, { 0, 0x00, 0xFF, 0x00, 81, 0x30, 0x80, 0x00, 135, 0x20, 0x40, 0x00, 165, 0x00, 0xFF, 0x00, 255, 0x00, 0xFF, 0x00 } };
+
+const ledCommand_struct neutralPalette = { CHUNKY, DEFAULT_BLEND_SPEED, { 0, 0xE9, 0xE9, 0xA0, 81, 0x40, 0x40, 0x40, 165, 0xFF, 0xFF, 0xB0, 255, 0xE9, 0xE9, 0xA0 } };
+const ledCommand_struct happyPalette = { CHUNKY, DEFAULT_BLEND_SPEED, { 0, 0xFF, 0x99, 0x00, 130, 0xFF, 0xB0, 0x00, 220, 0x80, 0x4D, 0x00, 255, 0xFF, 0x99, 0x00 } };
+const ledCommand_struct sadPalette = { CHUNKY, DEFAULT_BLEND_SPEED, { 0, 0x00, 0x00, 0xFF, 81, 0x30, 0x30, 0xFA, 165, 0x00, 0x00, 0x93, 255, 0x00, 0x00, 0xFF } };
+const ledCommand_struct angryPalette = { CHUNKY, DEFAULT_BLEND_SPEED, { 0, 0xFF, 0x00, 0x00, 120, 0xFF, 0x20, 0x00, 125, 0xC0, 0x00, 0x00, 255, 0xFF, 0x00, 0x00 } };
 
 // This function will be automatically called when a NoteOn is received.
 // It must be a void-returning function with the correct parameters,
@@ -69,55 +78,114 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
 {
   bool broadcastCommand = true;
   ledCommand_struct ledCommand;
+  esp_err_t result;
   switch(pitch)
   {
     case 48:
-      ledCommand = neutralPalette;
+      ledCommand = introPalette;
       break;
     case 49:
-      ledCommand = happyPalette;
+      ledCommand = goldenHourPalette;
       break;
     case 50:
-      ledCommand = sadPalette;
+      ledCommand = lightBluePalette;
       break;
     case 51:
-      ledCommand = angryPalette;
+      broadcastCommand = false;
+      ledCommand = darkBluePalette;
+      result = esp_now_send(broadcastAddress1, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      ledCommand = lightBluePalette;
+      result = esp_now_send(broadcastAddress2, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      result = esp_now_send(broadcastAddress3, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      break;
+    case 52:
+      broadcastCommand = false;
+      ledCommand = darkBluePalette;
+      result = esp_now_send(broadcastAddress3, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      ledCommand = lightBluePalette;
+      result = esp_now_send(broadcastAddress1, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      result = esp_now_send(broadcastAddress2, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      break;
+    case 53:
+      broadcastCommand = false;
+      ledCommand = darkBluePalette;
+      result = esp_now_send(broadcastAddress2, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      ledCommand = lightBluePalette;
+      result = esp_now_send(broadcastAddress1, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      result = esp_now_send(broadcastAddress3, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      break;
+    case 54:
+      ledCommand = greenPalette;
       break;
     case 60: // White
-      ledCommand.command = SOLID_COLOR;
+      ledCommand.effect = SOLID_COLOR;
+      ledCommand.blendSpeedMSec = DEFAULT_BLEND_SPEED;
       ledCommand.data[0] = 0xE9;
       ledCommand.data[1] = 0xE9;
       ledCommand.data[2] = 0xA0;
       break;
-    case 61: // Yellow
-      ledCommand.command = SOLID_COLOR;
+    case 61: // Red
+      ledCommand.effect = SOLID_COLOR;
+      ledCommand.blendSpeedMSec = DEFAULT_BLEND_SPEED;
       ledCommand.data[0] = 0xFF;
-      ledCommand.data[1] = 0x99;
+      ledCommand.data[1] = 0;
       ledCommand.data[2] = 0;
       break;
-    case 62: // Blue
-      ledCommand.command = SOLID_COLOR;
+    case 62: // Green
+      ledCommand.effect = SOLID_COLOR;
+      ledCommand.blendSpeedMSec = DEFAULT_BLEND_SPEED;
+      ledCommand.data[0] = 0;
+      ledCommand.data[1] = 0xFF;
+      ledCommand.data[2] = 0;
+      break;
+    case 63: // Blue
+      ledCommand.effect = SOLID_COLOR;
+      ledCommand.blendSpeedMSec = DEFAULT_BLEND_SPEED;
       ledCommand.data[0] = 0;
       ledCommand.data[1] = 0;
       ledCommand.data[2] = 0xFF;
       break;
-    case 63: // Red
-      ledCommand.command = SOLID_COLOR;
+    case 64: // Yellow
+      ledCommand.effect = SOLID_COLOR;
+      ledCommand.blendSpeedMSec = DEFAULT_BLEND_SPEED;
       ledCommand.data[0] = 0xFF;
-      ledCommand.data[1] = 0;
+      ledCommand.data[1] = 0x99;
       ledCommand.data[2] = 0;
       break;
+    case 65: // Cyan
+      ledCommand.effect = SOLID_COLOR;
+      ledCommand.blendSpeedMSec = DEFAULT_BLEND_SPEED;
+      ledCommand.data[0] = 0;
+      ledCommand.data[1] = 0xFF;
+      ledCommand.data[2] = 0xA0;
+      break;
+    case 66: // Magenta
+      ledCommand.effect = SOLID_COLOR;
+      ledCommand.blendSpeedMSec = DEFAULT_BLEND_SPEED;
+      ledCommand.data[0] = 0xFF;
+      ledCommand.data[1] = 0;
+      ledCommand.data[2] = 0xA0;
+      break;
     case 72: // Turns off
-      ledCommand.command = SOLID_COLOR;
+      ledCommand.effect = SOLID_COLOR;
+      ledCommand.blendSpeedMSec = 100;
       ledCommand.data[0] = 0;
       ledCommand.data[1] = 0;
       ledCommand.data[2] = 0;
       break;
     case 73: // Flash
-      ledCommand.command = FLASH;
+      ledCommand.effect = FLASH;
+      ledCommand.blendSpeedMSec = 1000;
       ledCommand.data[0] = 0xE9;
       ledCommand.data[1] = 0xE9;
       ledCommand.data[2] = 0xA0;
+      break;
+    case 74: // Flash
+      ledCommand.effect = FLASH;
+      ledCommand.blendSpeedMSec = 1000;
+      ledCommand.data[0] = 0x40;
+      ledCommand.data[1] = 0x40;
+      ledCommand.data[2] = 0xFF;
       break;
     default:
       broadcastCommand = false;
@@ -126,7 +194,7 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
 
   if (broadcastCommand)
   {
-    esp_err_t result = esp_now_send(0, (uint8_t *) &ledCommand, sizeof(ledCommand));
+    result = esp_now_send(0, (uint8_t *) &ledCommand, sizeof(ledCommand));
     broadcastCommand = false;
   }
 
@@ -169,10 +237,11 @@ void handleControlChange(byte channel, byte data1, byte data2)
   {
     case 7: // volume knob is 7 and is used for color selector
     {
-      ledCommand.command = 1;
+      ledCommand.effect = SOLID_COLOR;
       CHSV hsv(data2 * 2, 255, 255); // Volume ranges from 0 to 127 but hues are 0 to 255 so double it
       CRGB rgb;
       hsv2rgb_rainbow(hsv, rgb);
+      ledCommand.blendSpeedMSec = 0;
       ledCommand.data[0] = rgb.r;
       ledCommand.data[1] = rgb.g;
       ledCommand.data[2] = rgb.b;
