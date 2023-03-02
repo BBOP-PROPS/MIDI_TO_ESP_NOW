@@ -58,11 +58,11 @@ typedef struct midi_struct {
   byte velocity;
 } midi_struct;
 
-const ledCommand_struct introPalette = { CHUNKY, DEFAULT_BLEND_SPEED, { 0, 0xFF, 0x99, 0x00, 130, 0x50, 0x30, 0x00, 180, 0x80, 0x4D, 0x00, 255, 0xFF, 0x99, 0x00 } };
-const ledCommand_struct goldenHourPalette = { CHUNKY, DEFAULT_BLEND_SPEED, { 0, 0xFF, 0x00, 0x00, 35, 0xFF, 0x3C, 0x48, 61, 0xFF, 0x30, 0x30, 105, 0xFC, 0x05, 0x30, 150, 0xFF, 0x00, 0x00, 255, 0xFF, 0x00, 0x00 } };
-const ledCommand_struct lightBluePalette = { CHUNKY, DEFAULT_BLEND_SPEED, { 0, 0x20, 0x20, 0x80, 81, 0x30, 0x30, 0x80, 165, 0x10, 0x10, 0x40, 255, 0x20, 0x20, 0x80 } };
-const ledCommand_struct darkBluePalette = { CHUNKY, DEFAULT_BLEND_SPEED, { 0, 0x00, 0x00, 0xFF, 81, 0x00, 0x00, 0x80, 135, 0x00, 0x00, 0x40, 165, 0x00, 0x00, 0xFF, 255, 0x00, 0x00, 0xFF } };
-const ledCommand_struct greenPalette = { CHUNKY, DEFAULT_BLEND_SPEED, { 0, 0x00, 0xFF, 0x00, 81, 0x30, 0x80, 0x00, 135, 0x20, 0x40, 0x00, 165, 0x00, 0xFF, 0x00, 255, 0x00, 0xFF, 0x00 } };
+//const ledCommand_struct introPalette = { CHUNKY, DEFAULT_BLEND_SPEED, { 0, 0xFF, 0x99, 0x00, 130, 0x50, 0x30, 0x00, 180, 0x80, 0x4D, 0x00, 255, 0xFF, 0x99, 0x00 } };
+const ledCommand_struct goldenHourPalette = { CHUNKY, 100, { 0, 0xFF, 0x00, 0x00, 35, 0xFF, 0x3C, 0x48, 61, 0xFF, 0x30, 0x30, 105, 0xFC, 0x05, 0x30, 150, 0xFF, 0x00, 0x00, 255, 0xFF, 0x00, 0x00 } };
+//const ledCommand_struct lightBluePalette = { CHUNKY, DEFAULT_BLEND_SPEED, { 0, 0x20, 0x20, 0x80, 81, 0x30, 0x30, 0x80, 165, 0x10, 0x10, 0x40, 255, 0x20, 0x20, 0x80 } };
+const ledCommand_struct darkBluePalette = { CHUNKY, 100, { 0, 0x00, 0x00, 0xFF, 81, 0x00, 0x00, 0x80, 135, 0x00, 0x00, 0x20, 165, 0x00, 0x00, 0xFF, 255, 0x00, 0x00, 0xFF } };
+const ledCommand_struct greenPalette = { CHUNKY, 100, { 0, 0x00, 0xFF, 0x00, 81, 0x30, 0x80, 0x00, 135, 0x10, 0x20, 0x00, 165, 0x00, 0xFF, 0x00, 255, 0x00, 0xFF, 0x00 } };
 
 const ledCommand_struct neutralPalette = { CHUNKY, DEFAULT_BLEND_SPEED, { 0, 0xE9, 0xE9, 0xA0, 81, 0x40, 0x40, 0x40, 165, 0xFF, 0xFF, 0xB0, 255, 0xE9, 0xE9, 0xA0 } };
 const ledCommand_struct happyPalette = { CHUNKY, DEFAULT_BLEND_SPEED, { 0, 0xFF, 0x99, 0x00, 130, 0xFF, 0xB0, 0x00, 220, 0x80, 0x4D, 0x00, 255, 0xFF, 0x99, 0x00 } };
@@ -81,91 +81,114 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
   esp_err_t result;
   switch(pitch)
   {
-    case 48:
-      ledCommand = introPalette;
+    case 48: // off
+      ledCommand.effect = SOLID_COLOR;
+      ledCommand.blendSpeedMSec = 100;
+      ledCommand.data[0] = 0;
+      ledCommand.data[1] = 0;
+      ledCommand.data[2] = 0;
       break;
-    case 49:
-      ledCommand = goldenHourPalette;
+    case 49: // warm white
+      ledCommand.effect = SOLID_COLOR;
+      ledCommand.blendSpeedMSec = 5000;
+      ledCommand.data[0] = 0xE9;
+      ledCommand.data[1] = 0xA0;
+      ledCommand.data[2] = 0x20;
       break;
-    case 50:
-      ledCommand = lightBluePalette;
+    case 50: // red
+      ledCommand.effect = SOLID_COLOR;
+      ledCommand.blendSpeedMSec = 100;
+      ledCommand.data[0] = 0xFF;
+      ledCommand.data[1] = 0x00;
+      ledCommand.data[2] = 0x00;
       break;
-    case 51:
-      broadcastCommand = false;
-      ledCommand = darkBluePalette;
-      result = esp_now_send(broadcastAddress1, (uint8_t *) &ledCommand, sizeof(ledCommand));
-      ledCommand = lightBluePalette;
-      result = esp_now_send(broadcastAddress2, (uint8_t *) &ledCommand, sizeof(ledCommand));
-      result = esp_now_send(broadcastAddress3, (uint8_t *) &ledCommand, sizeof(ledCommand));
+    case 51: // magenta
+      ledCommand.effect = SOLID_COLOR;
+      ledCommand.blendSpeedMSec = 100;
+      ledCommand.data[0] = 0xFF;
+      ledCommand.data[1] = 0x00;
+      ledCommand.data[2] = 0xA0;
       break;
     case 52:
+      ledCommand = goldenHourPalette;
+      break;
+    case 53: // pale blue
+      ledCommand.effect = SOLID_COLOR;
+      ledCommand.blendSpeedMSec = 3500;
+      ledCommand.data[0] = 0x10;
+      ledCommand.data[1] = 0x10;
+      ledCommand.data[2] = 0x60;
+      break;
+    case 54: // A dark blue B, C pale blue
       broadcastCommand = false;
-      ledCommand = darkBluePalette;
+      ledCommand.effect = SOLID_COLOR;
+      ledCommand.blendSpeedMSec = 100;
+      ledCommand.data[0] = 0x00;
+      ledCommand.data[1] = 0x00;
+      ledCommand.data[2] = 0xFF;
+      result = esp_now_send(broadcastAddress1, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      ledCommand.data[0] = 0x10;
+      ledCommand.data[1] = 0x10;
+      ledCommand.data[2] = 0x60;
+      result = esp_now_send(broadcastAddress2, (uint8_t *) &ledCommand, sizeof(ledCommand));
       result = esp_now_send(broadcastAddress3, (uint8_t *) &ledCommand, sizeof(ledCommand));
-      ledCommand = lightBluePalette;
+      break;
+    case 55: // C dark blue A, B pale blue
+      broadcastCommand = false;
+      ledCommand.effect = SOLID_COLOR;
+      ledCommand.blendSpeedMSec = 100;
+      ledCommand.data[0] = 0x00;
+      ledCommand.data[1] = 0x00;
+      ledCommand.data[2] = 0xFF;
+      result = esp_now_send(broadcastAddress3, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      ledCommand.data[0] = 0x10;
+      ledCommand.data[1] = 0x10;
+      ledCommand.data[2] = 0x60;
       result = esp_now_send(broadcastAddress1, (uint8_t *) &ledCommand, sizeof(ledCommand));
       result = esp_now_send(broadcastAddress2, (uint8_t *) &ledCommand, sizeof(ledCommand));
       break;
-    case 53:
+    case 56: // B dark blue A, C pale blue
       broadcastCommand = false;
-      ledCommand = darkBluePalette;
+      ledCommand.effect = SOLID_COLOR;
+      ledCommand.blendSpeedMSec = 100;
+      ledCommand.data[0] = 0x00;
+      ledCommand.data[1] = 0x00;
+      ledCommand.data[2] = 0xFF;
       result = esp_now_send(broadcastAddress2, (uint8_t *) &ledCommand, sizeof(ledCommand));
-      ledCommand = lightBluePalette;
+      ledCommand.data[0] = 0x10;
+      ledCommand.data[1] = 0x10;
+      ledCommand.data[2] = 0x60;
       result = esp_now_send(broadcastAddress1, (uint8_t *) &ledCommand, sizeof(ledCommand));
       result = esp_now_send(broadcastAddress3, (uint8_t *) &ledCommand, sizeof(ledCommand));
       break;
-    case 54:
+    case 57: // dark blue twinkle
+      ledCommand = darkBluePalette;
+      break;
+    case 58: // Green
+      ledCommand.effect = SOLID_COLOR;
+      ledCommand.blendSpeedMSec = 100;
+      ledCommand.data[0] = 0;
+      ledCommand.data[1] = 0xA0;
+      ledCommand.data[2] = 0;
+      break;
+    case 59: // green twinkle
       ledCommand = greenPalette;
       break;
-    case 60: // White
+    case 60: // warm white
       ledCommand.effect = SOLID_COLOR;
-      ledCommand.blendSpeedMSec = DEFAULT_BLEND_SPEED;
-      ledCommand.data[0] = 0xE9;
-      ledCommand.data[1] = 0xE9;
-      ledCommand.data[2] = 0xA0;
+      ledCommand.blendSpeedMSec = 3500;
+      ledCommand.data[0] = 0xA0;
+      ledCommand.data[1] = 0xA0;
+      ledCommand.data[2] = 0x20;
       break;
-    case 61: // Red
+    case 61: // off
       ledCommand.effect = SOLID_COLOR;
-      ledCommand.blendSpeedMSec = DEFAULT_BLEND_SPEED;
-      ledCommand.data[0] = 0xFF;
+      ledCommand.blendSpeedMSec = 3500;
+      ledCommand.data[0] = 0;
       ledCommand.data[1] = 0;
       ledCommand.data[2] = 0;
       break;
-    case 62: // Green
-      ledCommand.effect = SOLID_COLOR;
-      ledCommand.blendSpeedMSec = DEFAULT_BLEND_SPEED;
-      ledCommand.data[0] = 0;
-      ledCommand.data[1] = 0xFF;
-      ledCommand.data[2] = 0;
-      break;
-    case 63: // Blue
-      ledCommand.effect = SOLID_COLOR;
-      ledCommand.blendSpeedMSec = DEFAULT_BLEND_SPEED;
-      ledCommand.data[0] = 0;
-      ledCommand.data[1] = 0;
-      ledCommand.data[2] = 0xFF;
-      break;
-    case 64: // Yellow
-      ledCommand.effect = SOLID_COLOR;
-      ledCommand.blendSpeedMSec = DEFAULT_BLEND_SPEED;
-      ledCommand.data[0] = 0xFF;
-      ledCommand.data[1] = 0x99;
-      ledCommand.data[2] = 0;
-      break;
-    case 65: // Cyan
-      ledCommand.effect = SOLID_COLOR;
-      ledCommand.blendSpeedMSec = DEFAULT_BLEND_SPEED;
-      ledCommand.data[0] = 0;
-      ledCommand.data[1] = 0xFF;
-      ledCommand.data[2] = 0xA0;
-      break;
-    case 66: // Magenta
-      ledCommand.effect = SOLID_COLOR;
-      ledCommand.blendSpeedMSec = DEFAULT_BLEND_SPEED;
-      ledCommand.data[0] = 0xFF;
-      ledCommand.data[1] = 0;
-      ledCommand.data[2] = 0xA0;
-      break;
+    
     case 72: // Turns off
       ledCommand.effect = SOLID_COLOR;
       ledCommand.blendSpeedMSec = 100;
@@ -179,13 +202,6 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
       ledCommand.data[0] = 0xE9;
       ledCommand.data[1] = 0xE9;
       ledCommand.data[2] = 0xA0;
-      break;
-    case 74: // Flash
-      ledCommand.effect = FLASH;
-      ledCommand.blendSpeedMSec = 1000;
-      ledCommand.data[0] = 0x40;
-      ledCommand.data[1] = 0x40;
-      ledCommand.data[2] = 0xFF;
       break;
     default:
       broadcastCommand = false;
@@ -318,7 +334,7 @@ void setup() {
   MIDI.setHandleNoteOn(handleNoteOn);  // Put only the name of the function
 //  MIDI.setHandleNoteOff(handleNoteOff);
 //  MIDI.setHandlePitchBend(handlePitchBend);
-  MIDI.setHandleControlChange(handleControlChange);
+//  MIDI.setHandleControlChange(handleControlChange);
 
   // Initiate MIDI communications, listen to all channels
   MIDI.begin(MIDI_CHANNEL_OMNI);

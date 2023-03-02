@@ -36,7 +36,8 @@ typedef struct ledCommand_struct
 };
 // End common section
 
-#define NUM_LEDS 300
+#define NUM_LEDS 510
+#define FRAME_RATE_MSEC 20
 
 #define PRACTICE_MODE_PIN 16
 #define TEST_MODE_PIN 17
@@ -71,7 +72,7 @@ bool newCommandReceived = false;
 ledCommand_struct ledCommand;
 unsigned long lastCommandTime = 0;
 byte activeEffect = 0;
-uint16_t activeBlendTimeMSec = 2000;
+//uint16_t activeBlendTimeMSec = 2000;
 
 //callback function that will be executed when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
@@ -136,6 +137,7 @@ void setup() {
   // get recv packer info
   esp_now_register_recv_cb(OnDataRecv);
 //  pinMode(22, OUTPUT);
+  powerOnDisplay();
 }
  
 void loop() {
@@ -157,7 +159,7 @@ void loop() {
     lastCommandTime = millis();
   }
   
-  EVERY_N_MILLISECONDS(20)
+  EVERY_N_MILLISECONDS(FRAME_RATE_MSEC)
   {
     updateEffect();
 //    digitalWrite(22, HIGH);
@@ -196,23 +198,36 @@ void updateEffect(void)
   }
 }
 
+float blendIncrement = 0.0F;
+float blendCountF = 0.0F;
+int blendCount = 255;
+
+void startBlend(uint16_t blendTimeMSec)
+{
+  blendIncrement = 255.0F / ((float)blendTimeMSec / FRAME_RATE_MSEC);
+  blendCountF = 0.0F;
+  blendCount = 0;
+}
+
 void updateBlend(void)
 {
-  if (activeBlendTimeMSec <= 100)
+  if (blendCount < 255)
   {
-    currentPalette = targetPalette;
-  }
-  else
-  {
-    // TODO need a better algorithm to get better resolution with integer math
-    // TODO break out into separate function to set the blend factors so don't have to re-calculate every time
-    int intervals = activeBlendTimeMSec / 20;
-    if (intervals == 0) intervals = 1;
-    int blends = 255 / intervals;
-    if (blends == 0) blends = 1;
-    for (int i = 0; i < blends; i++)
+    float newBlendCountF = blendCountF + blendIncrement;
+    int blends = (int)(newBlendCountF - blendCountF);
+    if (blends >= 50)
     {
-      nblendPaletteTowardPalette(currentPalette, targetPalette);
+      currentPalette = targetPalette;
+      blendCount = 255;
+    }
+    else
+    {
+      for (int i = 0; i < blends; i++)
+      {
+        nblendPaletteTowardPalette(currentPalette, targetPalette);
+      }
+      blendCountF = newBlendCountF;
+      blendCount += blends;
     }
   }
 }
@@ -260,17 +275,17 @@ void processNewCommand(void)
       Serial.println(ledCommand.data[2]);
       setTargetPaletteRGB(ledCommand.data[0], ledCommand.data[1], ledCommand.data[2]);
       activeEffect = ledCommand.effect;
-      activeBlendTimeMSec = ledCommand.blendSpeedMSec;
+      startBlend(ledCommand.blendSpeedMSec);
     }
       break;
     case CHUNKY:
       setTargetPalette(ledCommand.data, sizeof(ledCommand.data));
       activeEffect = ledCommand.effect;
-      activeBlendTimeMSec = ledCommand.blendSpeedMSec;
+      startBlend(ledCommand.blendSpeedMSec);
       break;
     case FLASH:
       setCurrentPaletteRGB(ledCommand.data[0], ledCommand.data[1], ledCommand.data[2]);
-      activeBlendTimeMSec = ledCommand.blendSpeedMSec;
+      startBlend(ledCommand.blendSpeedMSec);
       break;
     default:
       Serial.println("processCommand: Unknown command");
@@ -330,4 +345,21 @@ void testPattern(void)
   fill_solid(leds, NUM_LEDS, CRGB::Blue);
   FastLED.show();
   delay(TEST_PATTERN_DELAY);
+  fill_solid(leds, NUM_LEDS, CRGB::Black);
+}
+
+void powerOnDisplay(void)
+{
+  if ((digitalRead(PRACTICE_MODE_PIN) == 1) && (digitalRead(TEST_MODE_PIN) == 1))
+  {
+    fill_solid(leds, NUM_LEDS, CRGB::Green);
+  }
+  else
+  {
+    fill_solid(leds, NUM_LEDS, CRGB::Red);
+  }
+  FastLED.show();
+  delay(2000);
+  fill_solid(leds, NUM_LEDS, CRGB::Black);
+  FastLED.show();
 }
