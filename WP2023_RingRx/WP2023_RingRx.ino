@@ -36,7 +36,7 @@ typedef struct ledCommand_struct
 };
 // End common section
 
-#define NUM_LEDS 600
+#define NUM_LEDS 800
 #define FRAME_RATE_MSEC 25
 
 #define PRACTICE_MODE_PIN 16

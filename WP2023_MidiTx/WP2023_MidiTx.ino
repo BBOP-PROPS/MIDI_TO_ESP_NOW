@@ -91,9 +91,9 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
     case 49: // warm white
       ledCommand.effect = SOLID_COLOR;
       ledCommand.blendSpeedMSec = 5000;
-      ledCommand.data[0] = 0xE9;
-      ledCommand.data[1] = 0xA0;
-      ledCommand.data[2] = 0x20;
+      ledCommand.data[0] = 0xFF;
+      ledCommand.data[1] = 0xFF;
+      ledCommand.data[2] = 0xE6;
       break;
     case 50: // red
       ledCommand.effect = SOLID_COLOR;
@@ -334,7 +334,7 @@ void setup() {
   MIDI.setHandleNoteOn(handleNoteOn);  // Put only the name of the function
 //  MIDI.setHandleNoteOff(handleNoteOff);
 //  MIDI.setHandlePitchBend(handlePitchBend);
-//  MIDI.setHandleControlChange(handleControlChange);
+  //MIDI.setHandleControlChange(handleControlChange);
 
   // Initiate MIDI communications, listen to all channels
   MIDI.begin(MIDI_CHANNEL_OMNI);
