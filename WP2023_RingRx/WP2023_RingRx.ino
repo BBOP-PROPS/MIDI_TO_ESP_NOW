@@ -25,7 +25,8 @@ enum ledCommand_e : byte
 {
   SOLID_COLOR = 1,
   CHUNKY,
-  FLASH
+  FLASH,
+  BRIGHTNESS
 };
 
 typedef struct ledCommand_struct
@@ -287,6 +288,8 @@ void processNewCommand(void)
       setCurrentPaletteRGB(ledCommand.data[0], ledCommand.data[1], ledCommand.data[2]);
       startBlend(ledCommand.blendSpeedMSec);
       break;
+    case BRIGHTNESS:
+      FastLED.setBrightness(ledCommand.data[0]);
     default:
       Serial.println("processCommand: Unknown command");
       break;

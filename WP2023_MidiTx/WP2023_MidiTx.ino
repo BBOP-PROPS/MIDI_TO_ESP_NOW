@@ -26,7 +26,8 @@ enum ledCommand_e : byte
 {
   SOLID_COLOR = 1,
   CHUNKY,
-  FLASH
+  FLASH,
+  BRIGHTNESS
 };
 
 typedef struct ledCommand_struct
@@ -253,14 +254,10 @@ void handleControlChange(byte channel, byte data1, byte data2)
   {
     case 7: // volume knob is 7 and is used for color selector
     {
-      ledCommand.effect = SOLID_COLOR;
-      CHSV hsv(data2 * 2, 255, 255); // Volume ranges from 0 to 127 but hues are 0 to 255 so double it
-      CRGB rgb;
-      hsv2rgb_rainbow(hsv, rgb);
+      ledCommand.effect = BRIGHTNESS;
       ledCommand.blendSpeedMSec = 0;
-      ledCommand.data[0] = rgb.r;
-      ledCommand.data[1] = rgb.g;
-      ledCommand.data[2] = rgb.b;
+      ledCommand.data[0] = map(data2,0,127,0,255);
+      
     }
     break;
     default:
@@ -334,7 +331,7 @@ void setup() {
   MIDI.setHandleNoteOn(handleNoteOn);  // Put only the name of the function
 //  MIDI.setHandleNoteOff(handleNoteOff);
 //  MIDI.setHandlePitchBend(handlePitchBend);
-  //MIDI.setHandleControlChange(handleControlChange);
+  MIDI.setHandleControlChange(handleControlChange);
 
   // Initiate MIDI communications, listen to all channels
   MIDI.begin(MIDI_CHANNEL_OMNI);
