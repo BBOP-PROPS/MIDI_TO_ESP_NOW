@@ -257,6 +257,8 @@ void handleControlChange(byte channel, byte data1, byte data2)
       ledCommand.effect = BRIGHTNESS;
       ledCommand.blendSpeedMSec = 0;
       ledCommand.data[0] = map(data2,0,127,0,255);
+      //Serial.print("Brightness: ");
+      //Serial.println(ledCommand.data[0]);
       
     }
     break;
@@ -267,7 +269,9 @@ void handleControlChange(byte channel, byte data1, byte data2)
   
   if (broadcastCommand)
   {
-    esp_err_t result = esp_now_send(broadcastAddress2, (uint8_t *) &ledCommand, sizeof(ledCommand));
+     esp_err_t result = esp_now_send(0, (uint8_t *) &ledCommand, sizeof(ledCommand));
+    // result = esp_now_send(broadcastAddress2, (uint8_t *) &ledCommand, sizeof(ledCommand));
+    // result = esp_now_send(broadcastAddress3, (uint8_t *) &ledCommand, sizeof(ledCommand));
     broadcastCommand = false;
   }
 

@@ -267,6 +267,7 @@ void checkToggleSwitch(void)
 
 void processNewCommand(void)
 {
+
   switch(ledCommand.effect)
   {
     case SOLID_COLOR:
@@ -290,6 +291,9 @@ void processNewCommand(void)
       break;
     case BRIGHTNESS:
       FastLED.setBrightness(ledCommand.data[0]);
+      FastLED.show();
+         Serial.print("Brightness: ");
+      Serial.println(ledCommand.data[0]);
       break;
     default:
       Serial.println("processCommand: Unknown command");
