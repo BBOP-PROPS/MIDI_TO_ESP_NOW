@@ -128,9 +128,14 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
       ledCommand.data[1] = 0x00;
       ledCommand.data[2] = 0xFF;
       result = esp_now_send(broadcastAddress1, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      delay(100);
+      result = esp_now_send(broadcastAddress1, (uint8_t *) &ledCommand, sizeof(ledCommand));
       ledCommand.data[0] = 0x10;
       ledCommand.data[1] = 0x10;
       ledCommand.data[2] = 0x60;
+      result = esp_now_send(broadcastAddress2, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      result = esp_now_send(broadcastAddress3, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      delay(100);
       result = esp_now_send(broadcastAddress2, (uint8_t *) &ledCommand, sizeof(ledCommand));
       result = esp_now_send(broadcastAddress3, (uint8_t *) &ledCommand, sizeof(ledCommand));
       break;
@@ -142,9 +147,14 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
       ledCommand.data[1] = 0x00;
       ledCommand.data[2] = 0xFF;
       result = esp_now_send(broadcastAddress3, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      delay(100);
+      result = esp_now_send(broadcastAddress3, (uint8_t *) &ledCommand, sizeof(ledCommand));
       ledCommand.data[0] = 0x10;
       ledCommand.data[1] = 0x10;
       ledCommand.data[2] = 0x60;
+      result = esp_now_send(broadcastAddress1, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      result = esp_now_send(broadcastAddress2, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      delay(100);
       result = esp_now_send(broadcastAddress1, (uint8_t *) &ledCommand, sizeof(ledCommand));
       result = esp_now_send(broadcastAddress2, (uint8_t *) &ledCommand, sizeof(ledCommand));
       break;
@@ -156,9 +166,14 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
       ledCommand.data[1] = 0x00;
       ledCommand.data[2] = 0xFF;
       result = esp_now_send(broadcastAddress2, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      delay(100);
+      result = esp_now_send(broadcastAddress2, (uint8_t *) &ledCommand, sizeof(ledCommand));
       ledCommand.data[0] = 0x10;
       ledCommand.data[1] = 0x10;
       ledCommand.data[2] = 0x60;
+      result = esp_now_send(broadcastAddress1, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      result = esp_now_send(broadcastAddress3, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      delay(100);
       result = esp_now_send(broadcastAddress1, (uint8_t *) &ledCommand, sizeof(ledCommand));
       result = esp_now_send(broadcastAddress3, (uint8_t *) &ledCommand, sizeof(ledCommand));
       break;
@@ -211,6 +226,8 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
 
   if (broadcastCommand)
   {
+    result = esp_now_send(0, (uint8_t *) &ledCommand, sizeof(ledCommand));
+    delay(100);
     result = esp_now_send(0, (uint8_t *) &ledCommand, sizeof(ledCommand));
     broadcastCommand = false;
   }
@@ -292,6 +309,7 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   Serial.print(macStr);
   Serial.print(" send status:\t");
   Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+  
 }
  
 void setup() {
