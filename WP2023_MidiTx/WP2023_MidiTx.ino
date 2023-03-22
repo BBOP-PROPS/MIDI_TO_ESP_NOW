@@ -20,6 +20,7 @@
 #include <FastLED.h> // Using version 3.3.3 of FastLED to overcome a bug in the newer versions of the library
 
 //#define TEST_AT_HOME
+//#define _DEBUG_
 
 // This section should be common to both the receiver and transmitter
 enum ledCommand_e : byte
@@ -231,10 +232,11 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
     result = esp_now_send(0, (uint8_t *) &ledCommand, sizeof(ledCommand));
     broadcastCommand = false;
   }
-
+ #ifdef _DEBUG_
   char buf[100];
   sprintf(buf, "NoteOn: Channel: %d, Pitch: %d, Velocity: %d", channel, pitch, velocity);
   Serial.println(buf);
+#endif
 }
 
 #if 0
@@ -274,8 +276,10 @@ void handleControlChange(byte channel, byte data1, byte data2)
       ledCommand.effect = BRIGHTNESS;
       ledCommand.blendSpeedMSec = 0;
       ledCommand.data[0] = map(data2,0,127,0,255);
-      //Serial.print("Brightness: ");
-      //Serial.println(ledCommand.data[0]);
+      #ifdef _DEBUG_
+       Serial.print("Brightness: ");
+       Serial.println(ledCommand.data[0]);
+      #endif       
       
     }
     break;
@@ -293,8 +297,10 @@ void handleControlChange(byte channel, byte data1, byte data2)
   }
 
   char buf[100];
+  #ifdef _DEBUG_
   sprintf(buf, "Control Change: Channel: %d, data1: %d, data2: %d", channel, data1, data2);
   Serial.println(buf);
+  #endif
 }
 
 esp_now_peer_info_t peerInfo;
@@ -302,14 +308,16 @@ esp_now_peer_info_t peerInfo;
 // callback when data is sent
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   char macStr[18];
+  if (status != ESP_NOW_SEND_SUCCESS) {
   Serial.print("Packet to: ");
   // Copies the sender mac address to a string
   snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
            mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
   Serial.print(macStr);
   Serial.print(" send status:\t");
+
   Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
-  
+  }
 }
  
 void setup() {
