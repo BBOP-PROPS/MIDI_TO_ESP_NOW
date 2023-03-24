@@ -20,7 +20,20 @@
 #include <FastLED.h> // Using version 3.3.3 of FastLED to overcome a bug in the newer versions of the library
 
 //#define TEST_AT_HOME
-//#define _DEBUG_
+
+#define _DEBUG_
+#if defined _DEBUG_
+   char printBuf[100];
+   #define debug_print(...) \
+     sprintf(printBuf, __VA_ARGS__); \
+     Serial.print(printBuf)
+   #define debug_println(...) \
+     sprintf(printBuf, __VA_ARGS__); \
+     Serial.println(printBuf)
+#else
+   #define debug_print(x)
+   #define debug_println(x)
+#endif
 
 // This section should be common to both the receiver and transmitter
 enum ledCommand_e : byte
@@ -232,11 +245,8 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
     result = esp_now_send(0, (uint8_t *) &ledCommand, sizeof(ledCommand));
     broadcastCommand = false;
   }
- #ifdef _DEBUG_
-  char buf[100];
-  sprintf(buf, "NoteOn: Channel: %d, Pitch: %d, Velocity: %d", channel, pitch, velocity);
-  Serial.println(buf);
-#endif
+
+  debug_println("NoteOn: Channel: %d, Pitch: %d, Velocity: %d", channel, pitch, velocity);
 }
 
 #if 0
@@ -251,17 +261,13 @@ void handleNoteOff(byte channel, byte pitch, byte velocity)
   midiData.velocity = velocity;
   esp_err_t result = esp_now_send(0, (uint8_t *) &midiData, sizeof(midiData));
 
-  char buf[100];
-  sprintf(buf, "NoteOff: Channel: %d, Pitch: %d, Velocity: %d", channel, pitch, velocity);
-  Serial.println(buf);
+  debug_println("NoteOff: Channel: %d, Pitch: %d, Velocity: %d", channel, pitch, velocity);
 }
 #endif
 #if 0
 void handlePitchBend(byte channel, int bend)
 {
-  char buf[100];
-  sprintf(buf, "Pitch Bend: Channel: %d, Bend: %d", channel, bend);
-  Serial.println(buf);
+  debug_println("Pitch Bend: Channel: %d, Bend: %d", channel, bend);
 }
 #endif
 
@@ -276,11 +282,7 @@ void handleControlChange(byte channel, byte data1, byte data2)
       ledCommand.effect = BRIGHTNESS;
       ledCommand.blendSpeedMSec = 0;
       ledCommand.data[0] = map(data2,0,127,0,255);
-      #ifdef _DEBUG_
-       Serial.print("Brightness: ");
-       Serial.println(ledCommand.data[0]);
-      #endif       
-      
+      debug_println("Brightness: %d", ledCommand.data[0]);
     }
     break;
     default:
@@ -296,11 +298,7 @@ void handleControlChange(byte channel, byte data1, byte data2)
     broadcastCommand = false;
   }
 
-  char buf[100];
-  #ifdef _DEBUG_
-  sprintf(buf, "Control Change: Channel: %d, data1: %d, data2: %d", channel, data1, data2);
-  Serial.println(buf);
-  #endif
+  debug_println("Control Change: Channel: %d, data1: %d, data2: %d", channel, data1, data2);
 }
 
 esp_now_peer_info_t peerInfo;
@@ -309,14 +307,12 @@ esp_now_peer_info_t peerInfo;
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   char macStr[18];
   if (status != ESP_NOW_SEND_SUCCESS) {
-  Serial.print("Packet to: ");
-  // Copies the sender mac address to a string
-  snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
-           mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
-  Serial.print(macStr);
-  Serial.print(" send status:\t");
-
-  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+    debug_print("Packet to: ");
+    // Copies the sender mac address to a string
+    debug_print("%02x:%02x:%02x:%02x:%02x:%02x",
+             mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+    debug_print(" send status:\t");
+    debug_println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
   }
 }
  

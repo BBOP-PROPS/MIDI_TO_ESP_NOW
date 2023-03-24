@@ -20,6 +20,20 @@
 
 //#define TEST_AT_HOME
 
+#define _DEBUG_
+#if defined _DEBUG_
+   char printBuf[100];
+   #define debug_print(...) \
+     sprintf(printBuf, __VA_ARGS__); \
+     Serial.print(printBuf)
+   #define debug_println(...) \
+     sprintf(printBuf, __VA_ARGS__); \
+     Serial.println(printBuf)
+#else
+   #define debug_print(x)
+   #define debug_println(x)
+#endif
+
 // This section should be common to both the receiver and transmitter
 enum ledCommand_e : byte
 {
@@ -164,7 +178,7 @@ void loop() {
   {
     updateEffect();
 //    digitalWrite(22, HIGH);
-    FastLED.show(); // 19 msec with V3.5 and 9 msec with 3.3.3
+    FastLED.show(); // 18 msec with 600 LEDs and FastLED 3.3.3
 //    digitalWrite(22, LOW);
   }
 }
@@ -272,9 +286,7 @@ void processNewCommand(void)
   {
     case SOLID_COLOR:
     {
-      Serial.println(ledCommand.data[0]);
-      Serial.println(ledCommand.data[1]);
-      Serial.println(ledCommand.data[2]);
+      debug_println("Solid Color %d %d %d", ledCommand.data[0], ledCommand.data[1], ledCommand.data[2]);
       setTargetPaletteRGB(ledCommand.data[0], ledCommand.data[1], ledCommand.data[2]);
       activeEffect = ledCommand.effect;
       startBlend(ledCommand.blendSpeedMSec);
@@ -292,8 +304,7 @@ void processNewCommand(void)
     case BRIGHTNESS:
       FastLED.setBrightness(ledCommand.data[0]);
       FastLED.show();
-         Serial.print("Brightness: ");
-      Serial.println(ledCommand.data[0]);
+      debug_print("Brightness: %d", ledCommand.data[0]);
       break;
     default:
       Serial.println("processCommand: Unknown command");
