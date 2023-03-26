@@ -229,7 +229,7 @@ void updateBlend(void)
   if (blendCount < 255)
   {
     float newBlendCountF = blendCountF + blendIncrement;
-    int blends = (int)(newBlendCountF - blendCountF);
+    int blends = (int)(newBlendCountF - blendCount);
     if (blends >= 50)
     {
       currentPalette = targetPalette;
