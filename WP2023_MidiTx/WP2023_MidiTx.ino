@@ -196,7 +196,7 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
       break;
     case 58: // Green
       ledCommand.effect = SOLID_COLOR;
-      ledCommand.blendSpeedMSec = 100;
+      ledCommand.blendSpeedMSec = 2600;
       ledCommand.data[0] = 0;
       ledCommand.data[1] = 0xA0;
       ledCommand.data[2] = 0;
