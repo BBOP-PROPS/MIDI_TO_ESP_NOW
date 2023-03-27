@@ -20,7 +20,7 @@
 
 //#define TEST_AT_HOME
 
-#define _DEBUG_
+//#define _DEBUG_
 #if defined _DEBUG_
    char printBuf[100];
    #define debug_print(...) \
@@ -30,8 +30,8 @@
      sprintf(printBuf, __VA_ARGS__); \
      Serial.println(printBuf)
 #else
-   #define debug_print(x)
-   #define debug_println(x)
+   #define debug_print(...)
+   #define debug_println(...)
 #endif
 
 // This section should be common to both the receiver and transmitter

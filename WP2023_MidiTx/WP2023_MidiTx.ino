@@ -21,7 +21,7 @@
 
 //#define TEST_AT_HOME
 
-#define _DEBUG_
+//#define _DEBUG_
 #if defined _DEBUG_
    char printBuf[100];
    #define debug_print(...) \
@@ -31,8 +31,8 @@
      sprintf(printBuf, __VA_ARGS__); \
      Serial.println(printBuf)
 #else
-   #define debug_print(x)
-   #define debug_println(x)
+   #define debug_print(...)
+   #define debug_println(...)
 #endif
 
 // This section should be common to both the receiver and transmitter
@@ -52,17 +52,42 @@ typedef struct ledCommand_struct
 };
 // End common section
 
+enum sendState_e : byte
+{
+  SEND_IDLE = 0,
+  READY_TO_SEND,
+  RESPONSE_PENDING
+};
+
+typedef struct sendMsg_struct
+{
+  sendState_e sendState;
+  uint32_t sendTime;
+  uint8_t retries;
+  ledCommand_struct ledCommand;
+};
+
 #define DEFAULT_BLEND_SPEED 2000
 
+#define RINGA 0
+#define RINGB 1
+#define RINGC 2
+
 #ifdef TEST_AT_HOME
-const uint8_t broadcastAddress1[] = {0x94, 0xE6, 0x86, 0x3B, 0x5E, 0x3C}; // Mark's receiver
-const uint8_t broadcastAddress2[] = {0x94, 0xE6, 0x86, 0x3D, 0x59, 0xB8}; // Mark's receiver
-const uint8_t broadcastAddress3[] = {0x40, 0x22, 0xD8, 0x03, 0xC3, 0xE0}; // 
+#define NUM_RECEIVERS 2
+const uint8_t sendAddress[NUM_RECEIVERS][6] = {
+  {0x94, 0xE6, 0x86, 0x3B, 0x5E, 0x3C}, // Mark's receiver
+  {0x94, 0xE6, 0x86, 0x3D, 0x59, 0xB8}  // Mark's receiver
+};
 #else
-const uint8_t broadcastAddress1[] = {0x40, 0x22, 0xD8, 0x02, 0x82, 0x24}; // Ring A
-const uint8_t broadcastAddress2[] = {0x40, 0x22, 0xD8, 0x05, 0x52, 0x78}; // Ring B
-const uint8_t broadcastAddress3[] = {0x40, 0x22, 0xD8, 0x03, 0xC3, 0xE0}; // Ring C
+#define NUM_RECEIVERS 3
+const uint8_t sendAddress[NUM_RECEIVERS][6] = {
+  {0x40, 0x22, 0xD8, 0x02, 0x82, 0x24}, // Ring A
+  {0x40, 0x22, 0xD8, 0x05, 0x52, 0x78}, // Ring B
+  {0x40, 0x22, 0xD8, 0x03, 0xC3, 0xE0}  // Ring C
+};
 #endif
+sendMsg_struct sendMsg[NUM_RECEIVERS];
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial2, MIDI); // Need to use different serial port for MIDI to avoid conflict with serial debug printing
 
@@ -93,7 +118,7 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
 {
   bool broadcastCommand = true;
   ledCommand_struct ledCommand;
-  esp_err_t result;
+
   switch(pitch)
   {
     case 48: // off
@@ -141,17 +166,12 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
       ledCommand.data[0] = 0x00;
       ledCommand.data[1] = 0x00;
       ledCommand.data[2] = 0xFF;
-      result = esp_now_send(broadcastAddress1, (uint8_t *) &ledCommand, sizeof(ledCommand));
-      delay(100);
-      result = esp_now_send(broadcastAddress1, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      RequestSendMsg(RINGA, (uint8_t *) &ledCommand, sizeof(ledCommand));
       ledCommand.data[0] = 0x10;
       ledCommand.data[1] = 0x10;
       ledCommand.data[2] = 0x60;
-      result = esp_now_send(broadcastAddress2, (uint8_t *) &ledCommand, sizeof(ledCommand));
-      result = esp_now_send(broadcastAddress3, (uint8_t *) &ledCommand, sizeof(ledCommand));
-      delay(100);
-      result = esp_now_send(broadcastAddress2, (uint8_t *) &ledCommand, sizeof(ledCommand));
-      result = esp_now_send(broadcastAddress3, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      RequestSendMsg(RINGB, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      RequestSendMsg(RINGC, (uint8_t *) &ledCommand, sizeof(ledCommand));
       break;
     case 55: // C dark blue A, B pale blue
       broadcastCommand = false;
@@ -160,17 +180,12 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
       ledCommand.data[0] = 0x00;
       ledCommand.data[1] = 0x00;
       ledCommand.data[2] = 0xFF;
-      result = esp_now_send(broadcastAddress3, (uint8_t *) &ledCommand, sizeof(ledCommand));
-      delay(100);
-      result = esp_now_send(broadcastAddress3, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      RequestSendMsg(RINGC, (uint8_t *) &ledCommand, sizeof(ledCommand));
       ledCommand.data[0] = 0x10;
       ledCommand.data[1] = 0x10;
       ledCommand.data[2] = 0x60;
-      result = esp_now_send(broadcastAddress1, (uint8_t *) &ledCommand, sizeof(ledCommand));
-      result = esp_now_send(broadcastAddress2, (uint8_t *) &ledCommand, sizeof(ledCommand));
-      delay(100);
-      result = esp_now_send(broadcastAddress1, (uint8_t *) &ledCommand, sizeof(ledCommand));
-      result = esp_now_send(broadcastAddress2, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      RequestSendMsg(RINGA, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      RequestSendMsg(RINGB, (uint8_t *) &ledCommand, sizeof(ledCommand));
       break;
     case 56: // B dark blue A, C pale blue
       broadcastCommand = false;
@@ -179,17 +194,12 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
       ledCommand.data[0] = 0x00;
       ledCommand.data[1] = 0x00;
       ledCommand.data[2] = 0xFF;
-      result = esp_now_send(broadcastAddress2, (uint8_t *) &ledCommand, sizeof(ledCommand));
-      delay(100);
-      result = esp_now_send(broadcastAddress2, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      RequestSendMsg(RINGB, (uint8_t *) &ledCommand, sizeof(ledCommand));
       ledCommand.data[0] = 0x10;
       ledCommand.data[1] = 0x10;
       ledCommand.data[2] = 0x60;
-      result = esp_now_send(broadcastAddress1, (uint8_t *) &ledCommand, sizeof(ledCommand));
-      result = esp_now_send(broadcastAddress3, (uint8_t *) &ledCommand, sizeof(ledCommand));
-      delay(100);
-      result = esp_now_send(broadcastAddress1, (uint8_t *) &ledCommand, sizeof(ledCommand));
-      result = esp_now_send(broadcastAddress3, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      RequestSendMsg(RINGA, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      RequestSendMsg(RINGC, (uint8_t *) &ledCommand, sizeof(ledCommand));
       break;
     case 57: // dark blue twinkle
       ledCommand = darkBluePalette;
@@ -240,9 +250,9 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
 
   if (broadcastCommand)
   {
-    result = esp_now_send(0, (uint8_t *) &ledCommand, sizeof(ledCommand));
-    delay(100);
-    result = esp_now_send(0, (uint8_t *) &ledCommand, sizeof(ledCommand));
+    RequestSendMsg(RINGA, (uint8_t *) &ledCommand, sizeof(ledCommand));
+    RequestSendMsg(RINGB, (uint8_t *) &ledCommand, sizeof(ledCommand));
+    RequestSendMsg(RINGC, (uint8_t *) &ledCommand, sizeof(ledCommand));
     broadcastCommand = false;
   }
 
@@ -254,13 +264,6 @@ void handleNoteOff(byte channel, byte pitch, byte velocity)
 {
   // Do something when the note is released.
   // Note that NoteOn messages with 0 velocity are interpreted as NoteOffs.
-  midi_struct midiData;
-  midiData.midiCommand = 0x80;
-  midiData.channel = channel;
-  midiData.pitch = pitch;
-  midiData.velocity = velocity;
-  esp_err_t result = esp_now_send(0, (uint8_t *) &midiData, sizeof(midiData));
-
   debug_println("NoteOff: Channel: %d, Pitch: %d, Velocity: %d", channel, pitch, velocity);
 }
 #endif
@@ -292,9 +295,9 @@ void handleControlChange(byte channel, byte data1, byte data2)
   
   if (broadcastCommand)
   {
-     esp_err_t result = esp_now_send(0, (uint8_t *) &ledCommand, sizeof(ledCommand));
-    // result = esp_now_send(broadcastAddress2, (uint8_t *) &ledCommand, sizeof(ledCommand));
-    // result = esp_now_send(broadcastAddress3, (uint8_t *) &ledCommand, sizeof(ledCommand));
+    RequestSendMsg(RINGA, (uint8_t *) &ledCommand, sizeof(ledCommand));
+    RequestSendMsg(RINGB, (uint8_t *) &ledCommand, sizeof(ledCommand));
+    RequestSendMsg(RINGC, (uint8_t *) &ledCommand, sizeof(ledCommand));
     broadcastCommand = false;
   }
 
@@ -305,14 +308,29 @@ esp_now_peer_info_t peerInfo;
 
 // callback when data is sent
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-  char macStr[18];
-  if (status != ESP_NOW_SEND_SUCCESS) {
-    debug_print("Packet to: ");
-    // Copies the sender mac address to a string
-    debug_print("%02x:%02x:%02x:%02x:%02x:%02x",
-             mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
-    debug_print(" send status:\t");
-    debug_println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+  int8_t receiverNum = LookupReceiver(mac_addr);
+  if ((receiverNum >= 0) && (sendMsg[receiverNum].sendState == RESPONSE_PENDING))
+  {
+    if (status != ESP_NOW_SEND_SUCCESS)
+    {
+      sendMsg[receiverNum].retries++;
+      if (sendMsg[receiverNum].retries < 5)
+      {
+        sendMsg[receiverNum].sendState = READY_TO_SEND; // Send again
+        debug_println("Retrying receiver %d", receiverNum);
+      }
+      else
+      {
+        sendMsg[receiverNum].sendState = SEND_IDLE; // Give up
+        debug_print("Too many retries sending to ");
+        debug_println("%02x:%02x:%02x:%02x:%02x:%02x",
+               mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+      }
+    }
+    else
+    {
+      sendMsg[receiverNum].sendState = SEND_IDLE;
+    }
   }
 }
  
@@ -329,27 +347,18 @@ void setup() {
   Serial.println("Starting Up");
   esp_now_register_send_cb(OnDataSent);
   Serial.println("Registered MIDI");
-  
-  // register peer
+
   peerInfo.channel = 0;  
   peerInfo.encrypt = false;
-  // register first peer  
-  memcpy(peerInfo.peer_addr, broadcastAddress1, 6);
-  if (esp_now_add_peer(&peerInfo) != ESP_OK){
-    Serial.println("Failed to add peer");
-    return;
-  }
-  // register second peer  
-  memcpy(peerInfo.peer_addr, broadcastAddress2, 6);
-  if (esp_now_add_peer(&peerInfo) != ESP_OK){
-    Serial.println("Failed to add peer");
-    return;
-   }
-  // /// register third peer
-  memcpy(peerInfo.peer_addr, broadcastAddress3, 6);
-  if (esp_now_add_peer(&peerInfo) != ESP_OK){
-    Serial.println("Failed to add peer");
-    return;
+  for (int i = 0; i < NUM_RECEIVERS; i++)
+  {
+    // register peer
+    memcpy(peerInfo.peer_addr, sendAddress[i], 6);
+    if (esp_now_add_peer(&peerInfo) != ESP_OK)
+    {
+      Serial.println("Failed to add peer");
+      return;
+    }
   }
 
   // Connect the handleNoteOn function to the library,
@@ -362,7 +371,7 @@ void setup() {
   // Initiate MIDI communications, listen to all channels
   MIDI.begin(MIDI_CHANNEL_OMNI);
 }
- 
+
 void loop() {
   MIDI.read();
 //  if ( MIDI.read()) // printing MIDI messages only needed for debugging
@@ -380,4 +389,56 @@ while (Serial.available() == 0) {
     handleNoteOn(1, (byte)pitch, 1);
   }
 #endif
-}    
+  CheckMessagesToSend();
+}
+
+void RequestSendMsg(const uint8_t receiverNum, const uint8_t *data, size_t len)
+{
+  if (receiverNum < NUM_RECEIVERS)
+  {
+    sendMsg[receiverNum].sendTime = millis();
+    memcpy(&sendMsg[receiverNum].ledCommand, data, len);
+    sendMsg[receiverNum].retries = 0;
+    sendMsg[receiverNum].sendState = READY_TO_SEND;
+  }
+}
+
+void CheckMessagesToSend(void)
+{
+  esp_err_t result;
+  for (int i = 0; i < NUM_RECEIVERS; i++)
+  {
+    if (sendMsg[i].sendState == READY_TO_SEND)
+    {
+      debug_println("Sending to receiver %d", i);
+      result = esp_now_send(sendAddress[i], (uint8_t *) &sendMsg[i].ledCommand, sizeof(sendMsg[i].ledCommand));
+      if (result == ESP_OK)
+      {
+        sendMsg[i].sendState = RESPONSE_PENDING;
+      }
+      else
+      {
+        if (millis() - sendMsg[i].sendTime > 500)
+        {
+          sendMsg[i].sendState = SEND_IDLE; // Give up
+          Serial.print("Couldn't initiate sending a message to receiver ");
+          Serial.println(i);
+        }
+      }
+    }
+  }
+}
+
+int8_t LookupReceiver(const uint8_t *mac_addr)
+{
+  int8_t receiverNum = -1; // Assume invalid until we find it
+  for (int i = 0; i < NUM_RECEIVERS; i++)
+  {
+    if (memcmp(mac_addr, sendAddress[i], 6) == 0)
+    {
+      receiverNum = i;
+      break;
+    }
+  }
+  return receiverNum;
+}
