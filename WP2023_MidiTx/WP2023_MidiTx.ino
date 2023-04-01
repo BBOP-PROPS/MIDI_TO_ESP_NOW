@@ -315,7 +315,7 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
     if (status != ESP_NOW_SEND_SUCCESS)
     {
       sendMsg[receiverNum].retries++;
-      if (sendMsg[receiverNum].retries < 5)
+      if (sendMsg[receiverNum].retries < 20)
       {
         sendMsg[receiverNum].sendState = READY_TO_SEND; // Send again
         debug_println("Retrying receiver %d", receiverNum);
@@ -400,7 +400,10 @@ while (Serial.available() == 0) {
     handleNoteOn(1, (byte)pitch, 1);
   }
 #endif
-  CheckMessagesToSend();
+  EVERY_N_MILLISECONDS(10)
+  {
+    CheckMessagesToSend();
+  }
   if (updateMonitor)
   {
     FastLED.show();
