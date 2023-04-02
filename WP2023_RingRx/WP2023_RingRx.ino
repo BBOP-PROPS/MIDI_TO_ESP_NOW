@@ -17,6 +17,7 @@
 #include <esp_now.h>
 #include <WiFi.h>
 #include <FastLED.h> // Using version 3.3.3 of FastLED to overcome a bug in the newer versions of the library
+#include <esp_wifi.h>
 
 //#define TEST_AT_HOME
 
@@ -143,6 +144,16 @@ void setup() {
   
   //Set device as a Wi-Fi Station
   WiFi.mode(WIFI_STA);
+  uint8_t primary;
+  wifi_second_chan_t second;
+  esp_wifi_get_channel(&primary, &second);
+  Serial.print("Primary channel before ");
+  Serial.println(primary);
+  esp_wifi_set_channel(6, second);
+  esp_wifi_get_channel(&primary, &second);
+  Serial.print("Primary channel after ");
+  Serial.println(primary);
+
   //Init ESP-NOW
   if (esp_now_init() != ESP_OK) {
     Serial.println("Error initializing ESP-NOW");
