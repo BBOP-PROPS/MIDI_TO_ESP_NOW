@@ -149,7 +149,7 @@ void setup() {
   esp_wifi_get_channel(&primary, &second);
   Serial.print("Primary channel before ");
   Serial.println(primary);
-  esp_wifi_set_channel(6, second);
+  esp_wifi_set_channel(13, second);
   esp_wifi_get_channel(&primary, &second);
   Serial.print("Primary channel after ");
   Serial.println(primary);
