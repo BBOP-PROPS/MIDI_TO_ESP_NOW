@@ -353,24 +353,14 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
     }
     else
     {
-      SetMonitorSegment(receiverNum);
       sendMsg[receiverNum].sendState = SEND_IDLE;
     }
   }
 }
 
-#define NUM_MON_LEDS 33
-CRGB leds[NUM_MON_LEDS];
-bool updateMonitor = false;
-
 void setup() {
   Serial.begin(115200);
   
-  FastLED.addLeds<WS2812B, 23, GRB>(leds, NUM_MON_LEDS);
-  FastLED.setBrightness(50);
-  fill_solid(leds, NUM_MON_LEDS, CRGB::Black); // Want to make sure all the LEDs are off before starting the radio
-  FastLED.show();
-
   delay(2000); // Give time for the power to settle down before starting the radio
   WiFi.mode(WIFI_STA);
   uint8_t primary;
@@ -436,11 +426,6 @@ while (Serial.available() == 0) {
   {
     CheckMessagesToSend();
   }
-  if (updateMonitor)
-  {
-    FastLED.show();
-    updateMonitor = false;
-  }
 }
 
 void RequestSendMsg(const uint8_t receiverNum, const uint8_t *data, size_t len)
@@ -492,26 +477,4 @@ int8_t LookupReceiver(const uint8_t *mac_addr)
     }
   }
   return receiverNum;
-}
-
-void SetMonitorSegment(uint8_t receiver)
-{
-  if (receiver < 3)
-  {
-    CRGB color;
-    if (sendMsg[receiver].ledCommand.effect == SOLID_COLOR)
-    {
-      color = CRGB(sendMsg[receiver].ledCommand.data[0], sendMsg[receiver].ledCommand.data[1], sendMsg[receiver].ledCommand.data[2]);
-    }
-    else if (sendMsg[receiver].ledCommand.effect == CHUNKY)
-    {
-      color = CRGB(sendMsg[receiver].ledCommand.data[1], sendMsg[receiver].ledCommand.data[2], sendMsg[receiver].ledCommand.data[3]);
-    }
-    else
-    {
-      return; // Don't update the monitor for other types of messages
-    }
-    fill_solid(&leds[(NUM_MON_LEDS / 3) * receiver], NUM_MON_LEDS / 3, color);
-    updateMonitor = true; // Tell main loop to update the led strip
-  }
 }
