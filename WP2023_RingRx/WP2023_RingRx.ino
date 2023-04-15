@@ -50,7 +50,19 @@ typedef struct ledCommand_struct
   uint16_t blendSpeedMSec;
   byte data[24];
 };
+
+typedef struct broadcastMsg_struct
+{
+  uint8_t resendCtr;
+  uint16_t sequenceNum;
+  ledCommand_struct ledCmd[3];
+};
+
 // End common section
+
+int8_t myReceiverNum = -1;
+broadcastMsg_struct bcastMsg;
+uint16_t lastSequenceNum = 0;
 
 #define NUM_LEDS 600
 #define FRAME_RATE_MSEC 25
@@ -88,15 +100,49 @@ bool newCommandReceived = false;
 ledCommand_struct ledCommand;
 unsigned long lastCommandTime = 0;
 byte activeEffect = 0;
-//uint16_t activeBlendTimeMSec = 2000;
+
+#ifdef TEST_AT_HOME
+#define NUM_RECEIVERS 3
+const uint8_t sendAddress[NUM_RECEIVERS][6] = {
+  {0x94, 0xE6, 0x86, 0x3B, 0x5E, 0x3C}, // Mark's receiver
+  {0x94, 0xE6, 0x86, 0x3D, 0x59, 0xB8}, // Mark's receiver
+  {0xC8, 0xF0, 0x9E, 0xEC, 0x22, 0x24}  // Mark's receiver dev kit
+};
+#else
+#define NUM_RECEIVERS 3
+const uint8_t sendAddress[NUM_RECEIVERS][6] = {
+  {0x40, 0x22, 0xD8, 0x02, 0x82, 0x24}, // Ring A
+  {0x40, 0x22, 0xD8, 0x05, 0x52, 0x78}, // Ring B
+  {0x40, 0x22, 0xD8, 0x03, 0xC3, 0xE0}  // Ring C
+};
+#endif
 
 //callback function that will be executed when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
 {
-  if (len <= sizeof(ledCommand_struct))
+  debug_println("%02x:%02x:%02x:%02x:%02x:%02x",
+       mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  esp_err_t result;
+  if (len >= sizeof(broadcastMsg_struct))
   {
-    memcpy(&ledCommand, incomingData, sizeof(ledCommand_struct));
-    newCommandReceived = true;
+    memcpy(&bcastMsg, incomingData, sizeof(broadcastMsg_struct));
+    debug_println("sequence Num %d, resend %d", bcastMsg.sequenceNum, bcastMsg.resendCtr);
+    if ((bcastMsg.sequenceNum > lastSequenceNum) || // This prevents processing the same message twice
+       ((bcastMsg.sequenceNum <= 1) && (lastSequenceNum > 1))) // This allows the transmitter to be reset or roll over
+    {
+      lastSequenceNum = bcastMsg.sequenceNum;
+      memcpy(&ledCommand, &bcastMsg.ledCmd[myReceiverNum], sizeof(ledCommand_struct));
+      newCommandReceived = true;
+    }
+    if (bcastMsg.resendCtr == 0) // if this is original message, then forward to peers
+    {
+      bcastMsg.resendCtr++;
+      result = esp_now_send(0, (uint8_t *) &bcastMsg, sizeof(bcastMsg));
+      if (result != ESP_OK)
+      {
+        Serial.println("Couldn't initiate forwarding the message ");
+      }
+    }
   }
   else
   {
@@ -153,7 +199,16 @@ void setup() {
   esp_wifi_get_channel(&primary, &second);
   Serial.print("Primary channel after ");
   Serial.println(primary);
-
+  uint8_t mac_addr[6];
+  esp_wifi_get_mac(WIFI_IF_STA, mac_addr);
+  myReceiverNum = LookupReceiver(mac_addr);
+  debug_println("%02x:%02x:%02x:%02x:%02x:%02x",
+         mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+  if (myReceiverNum < 0)
+  {
+    Serial.println("This mac address isn't in the list!");
+    return;
+  }
   //Init ESP-NOW
   if (esp_now_init() != ESP_OK) {
     Serial.println("Error initializing ESP-NOW");
@@ -162,6 +217,25 @@ void setup() {
   // Once ESPNow is successfully Init, we will register for recv CB to
   // get recv packer info
   esp_now_register_recv_cb(OnDataRecv);
+
+  // Register the other two rings so we can forward messages
+  esp_now_peer_info_t peerInfo;
+  peerInfo.channel = 0;  
+  peerInfo.encrypt = false;
+  for (int i = 0; i < NUM_RECEIVERS; i++)
+  {
+    // register peer
+    if (memcmp(mac_addr, sendAddress[i], 6) != 0)
+    {
+      memcpy(peerInfo.peer_addr, sendAddress[i], 6);
+      if (esp_now_add_peer(&peerInfo) != ESP_OK)
+      {
+        Serial.println("Failed to add peer");
+        return;
+      }
+    }
+  }
+
 //  pinMode(22, OUTPUT);
   powerOnDisplay();
 }
@@ -292,12 +366,11 @@ void checkToggleSwitch(void)
 
 void processNewCommand(void)
 {
-
   switch(ledCommand.effect)
   {
     case SOLID_COLOR:
     {
-      debug_println("Solid Color %d %d %d", ledCommand.data[0], ledCommand.data[1], ledCommand.data[2]);
+//      debug_println("Solid Color %d %d %d", ledCommand.data[0], ledCommand.data[1], ledCommand.data[2]);
       setTargetPaletteRGB(ledCommand.data[0], ledCommand.data[1], ledCommand.data[2]);
       activeEffect = ledCommand.effect;
       startBlend(ledCommand.blendSpeedMSec);
@@ -392,4 +465,18 @@ void powerOnDisplay(void)
   delay(2000);
   fill_solid(leds, NUM_LEDS, CRGB::Black);
   FastLED.show();
+}
+
+int8_t LookupReceiver(const uint8_t *mac_addr)
+{
+  int8_t receiverNum = -1; // Assume invalid until we find it
+  for (int i = 0; i < NUM_RECEIVERS; i++)
+  {
+    if (memcmp(mac_addr, sendAddress[i], 6) == 0)
+    {
+      receiverNum = i;
+      break;
+    }
+  }
+  return receiverNum;
 }

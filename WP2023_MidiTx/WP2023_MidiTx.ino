@@ -51,34 +51,44 @@ typedef struct ledCommand_struct
   uint16_t blendSpeedMSec;
   byte data[24];
 };
+
+typedef struct broadcastMsg_struct
+{
+  uint8_t resendCtr;
+  uint16_t sequenceNum;
+  ledCommand_struct ledCmd[3];
+};
+
 // End common section
 
-enum sendState_e : byte
-{
-  SEND_IDLE = 0,
-  READY_TO_SEND,
-  RESPONSE_PENDING
-};
+//enum sendState_e : byte
+//{
+//  SEND_IDLE = 0,
+//  READY_TO_SEND,
+//  RESPONSE_PENDING
+//};
 
-typedef struct sendMsg_struct
-{
-  sendState_e sendState;
-  uint32_t sendTime;
-  uint8_t retries;
-  ledCommand_struct ledCommand;
-};
+broadcastMsg_struct bcastMsg;
+bool readyToBroadcast = false;
 
-#define DEFAULT_BLEND_SPEED 2000
+//typedef struct sendMsg_struct
+//{
+//  sendState_e sendState;
+//  uint32_t sendTime;
+//  uint8_t retries;
+//  ledCommand_struct ledCommand[3];
+//};
 
 #define RINGA 0
 #define RINGB 1
 #define RINGC 2
 
 #ifdef TEST_AT_HOME
-#define NUM_RECEIVERS 2
+#define NUM_RECEIVERS 3
 const uint8_t sendAddress[NUM_RECEIVERS][6] = {
   {0x94, 0xE6, 0x86, 0x3B, 0x5E, 0x3C}, // Mark's receiver
-  {0x94, 0xE6, 0x86, 0x3D, 0x59, 0xB8}  // Mark's receiver
+  {0x94, 0xE6, 0x86, 0x3D, 0x59, 0xB8}, // Mark's receiver
+  {0xC8, 0xF0, 0x9E, 0xEC, 0x22, 0x24}  // Mark's receiver dev kit
 };
 #else
 #define NUM_RECEIVERS 3
@@ -88,7 +98,7 @@ const uint8_t sendAddress[NUM_RECEIVERS][6] = {
   {0x40, 0x22, 0xD8, 0x03, 0xC3, 0xE0}  // Ring C
 };
 #endif
-sendMsg_struct sendMsg[NUM_RECEIVERS];
+//sendMsg_struct sendMsg;
 
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial2, MIDI); // Need to use different serial port for MIDI to avoid conflict with serial debug printing
 
@@ -119,7 +129,7 @@ const ledCommand_struct orangeTwinkle =  { CHUNKY, 1875, { 0, 0xf0, 0x40, 0x00, 
 // Try not to do too much processing or add delays in callbacks
 void handleNoteOn(byte channel, byte pitch, byte velocity)
 {
-  bool broadcastCommand = true;
+  bool allSame = true;
   ledCommand_struct ledCommand;
 
   switch(pitch)
@@ -163,7 +173,7 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
       ledCommand.data[2] = 0x60;
       break;
     case 54: // A dark blue B, C pale blue
-      broadcastCommand = false;
+      allSame = false;
       ledCommand.effect = SOLID_COLOR;
       ledCommand.blendSpeedMSec = 100;
       ledCommand.data[0] = 0x00;
@@ -177,7 +187,7 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
       RequestSendMsg(RINGC, (uint8_t *) &ledCommand, sizeof(ledCommand));
       break;
     case 55: // C dark blue A, B pale blue
-      broadcastCommand = false;
+      allSame = false;
       ledCommand.effect = SOLID_COLOR;
       ledCommand.blendSpeedMSec = 100;
       ledCommand.data[0] = 0x00;
@@ -191,7 +201,7 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
       RequestSendMsg(RINGB, (uint8_t *) &ledCommand, sizeof(ledCommand));
       break;
     case 56: // B dark blue A, C pale blue
-      broadcastCommand = false;
+      allSame = false;
       ledCommand.effect = SOLID_COLOR;
       ledCommand.blendSpeedMSec = 100;
       ledCommand.data[0] = 0x00;
@@ -267,39 +277,24 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
       ledCommand.data[2] = 0xA0;
       break;
     default:
-      broadcastCommand = false;
+      allSame = false;
       break;
   }
 
-  if (broadcastCommand)
+  if (allSame)
   {
     RequestSendMsg(RINGA, (uint8_t *) &ledCommand, sizeof(ledCommand));
     RequestSendMsg(RINGB, (uint8_t *) &ledCommand, sizeof(ledCommand));
     RequestSendMsg(RINGC, (uint8_t *) &ledCommand, sizeof(ledCommand));
-    broadcastCommand = false;
+    allSame = false;
   }
-
+  readyToBroadcast = true;
+  
   debug_println("NoteOn: Channel: %d, Pitch: %d, Velocity: %d", channel, pitch, velocity);
 }
 
-#if 0
-void handleNoteOff(byte channel, byte pitch, byte velocity)
-{
-  // Do something when the note is released.
-  // Note that NoteOn messages with 0 velocity are interpreted as NoteOffs.
-  debug_println("NoteOff: Channel: %d, Pitch: %d, Velocity: %d", channel, pitch, velocity);
-}
-#endif
-#if 0
-void handlePitchBend(byte channel, int bend)
-{
-  debug_println("Pitch Bend: Channel: %d, Bend: %d", channel, bend);
-}
-#endif
-
 void handleControlChange(byte channel, byte data1, byte data2)
 {
-  bool broadcastCommand = true;
   ledCommand_struct ledCommand;
   switch (data1)
   {
@@ -312,17 +307,13 @@ void handleControlChange(byte channel, byte data1, byte data2)
     }
     break;
     default:
-    broadcastCommand = false;
     break;
   }
   
-  if (broadcastCommand)
-  {
-    RequestSendMsg(RINGA, (uint8_t *) &ledCommand, sizeof(ledCommand));
-    RequestSendMsg(RINGB, (uint8_t *) &ledCommand, sizeof(ledCommand));
-    RequestSendMsg(RINGC, (uint8_t *) &ledCommand, sizeof(ledCommand));
-    broadcastCommand = false;
-  }
+  RequestSendMsg(RINGA, (uint8_t *) &ledCommand, sizeof(ledCommand));
+  RequestSendMsg(RINGB, (uint8_t *) &ledCommand, sizeof(ledCommand));
+  RequestSendMsg(RINGC, (uint8_t *) &ledCommand, sizeof(ledCommand));
+  readyToBroadcast = true;
 
   debug_println("Control Change: Channel: %d, data1: %d, data2: %d", channel, data1, data2);
 }
@@ -332,34 +323,48 @@ esp_now_peer_info_t peerInfo;
 // callback when data is sent
 // Don't do too much processing in the callback. Retries will be sent in main loop.
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-  int8_t receiverNum = LookupReceiver(mac_addr);
-  if ((receiverNum >= 0) && (sendMsg[receiverNum].sendState == RESPONSE_PENDING))
+//  int8_t receiverNum = LookupReceiver(mac_addr);
+//  if ((receiverNum >= 0) && (sendMsg[receiverNum].sendState == RESPONSE_PENDING))
+//  {
+//    if (status != ESP_NOW_SEND_SUCCESS)
+//    {
+//      sendMsg[receiverNum].retries++;
+//      if (sendMsg[receiverNum].retries < 20)
+//      {
+//        sendMsg[receiverNum].sendState = READY_TO_SEND; // Send again
+//        debug_println("Retrying receiver %d", receiverNum);
+//      }
+//      else
+//      {
+//        sendMsg[receiverNum].sendState = SEND_IDLE; // Give up
+//        debug_print("Too many retries sending to ");
+//        debug_println("%02x:%02x:%02x:%02x:%02x:%02x",
+//               mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+//      }
+//    }
+//    else
+//    {
+//      sendMsg[receiverNum].sendState = SEND_IDLE;
+//    }
+//  }
+  if (status != ESP_NOW_SEND_SUCCESS)
   {
-    if (status != ESP_NOW_SEND_SUCCESS)
-    {
-      sendMsg[receiverNum].retries++;
-      if (sendMsg[receiverNum].retries < 20)
-      {
-        sendMsg[receiverNum].sendState = READY_TO_SEND; // Send again
-        debug_println("Retrying receiver %d", receiverNum);
-      }
-      else
-      {
-        sendMsg[receiverNum].sendState = SEND_IDLE; // Give up
-        debug_print("Too many retries sending to ");
-        debug_println("%02x:%02x:%02x:%02x:%02x:%02x",
-               mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
-      }
-    }
-    else
-    {
-      sendMsg[receiverNum].sendState = SEND_IDLE;
-    }
+    debug_print("Failure sending to ");
+    debug_println("%02x:%02x:%02x:%02x:%02x:%02x",
+           mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
   }
+//  else
+//  {
+//    debug_print("Success sending to ");
+//    debug_println("%02x:%02x:%02x:%02x:%02x:%02x",
+//           mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+//  }
 }
 
 void setup() {
   Serial.begin(115200);
+
+  bcastMsg.sequenceNum = 0;
   
   delay(2000); // Give time for the power to settle down before starting the radio
   WiFi.mode(WIFI_STA);
@@ -397,8 +402,6 @@ void setup() {
   // Connect the handleNoteOn function to the library,
   // so it is called upon reception of a NoteOn.
   MIDI.setHandleNoteOn(handleNoteOn);  // Put only the name of the function
-//  MIDI.setHandleNoteOff(handleNoteOff);
-//  MIDI.setHandlePitchBend(handlePitchBend);
   MIDI.setHandleControlChange(handleControlChange);
 
   // Initiate MIDI communications, listen to all channels
@@ -414,53 +417,71 @@ void loop() {
 //    Serial.print(b1);
 //  }
 #ifdef TEST_AT_HOME
-while (Serial.available() == 0) {
-  }
-  int pitch = Serial.parseInt();
-  if ((pitch > 1) && (pitch < 256))
-  {
-    handleNoteOn(1, (byte)pitch, 1);
-  }
+//while (Serial.available() == 0) {
+//  }
+//  int pitch = Serial.parseInt();
+//  if ((pitch > 1) && (pitch < 256))
+//  {
+//    handleNoteOn(1, (byte)pitch, 1);
+//  }
 #endif
   EVERY_N_MILLISECONDS(10)
   {
     CheckMessagesToSend();
   }
+//  EVERY_N_MILLISECONDS(2000)
+//  {
+//    static uint8_t pitch = 48;
+//    handleNoteOn(1, (byte)pitch++, 1);
+//    if (pitch > 70)
+//      pitch = 48;
+//  }
+//  EVERY_N_MILLISECONDS(10000)
+//  {
+//    int counter = 0;
+//    esp_err_t result = ESP_OK;
+//    while (result == ESP_OK)
+//    {
+//      result = esp_now_send(0, (uint8_t *) &bcastMsg, sizeof(bcastMsg));
+//      counter++;
+//      if (result == ESP_OK)
+//      {
+//        readyToBroadcast = false;
+//      }
+//      else
+//      {
+//        Serial.println("Couldn't initiate broadcasting the message ");
+//        Serial.println(result);
+//      }
+//    }
+//    debug_println("Failed after %d sends", counter);
+//  }
 }
 
 void RequestSendMsg(const uint8_t receiverNum, const uint8_t *data, size_t len)
 {
   if (receiverNum < NUM_RECEIVERS)
   {
-    sendMsg[receiverNum].sendTime = millis();
-    memcpy(&sendMsg[receiverNum].ledCommand, data, len);
-    sendMsg[receiverNum].retries = 0;
-    sendMsg[receiverNum].sendState = READY_TO_SEND;
+    memcpy(&bcastMsg.ledCmd[receiverNum], data, len);
   }
 }
 
 void CheckMessagesToSend(void)
 {
   esp_err_t result;
-  for (int i = 0; i < NUM_RECEIVERS; i++)
+  if (readyToBroadcast)
   {
-    if (sendMsg[i].sendState == READY_TO_SEND)
+    bcastMsg.resendCtr = 0; // This is always zero on the transmitter since it is initiating the message
+    bcastMsg.sequenceNum++;
+    result = esp_now_send(0, (uint8_t *) &bcastMsg, sizeof(bcastMsg));
+    if (result == ESP_OK)
     {
-      debug_println("Sending to receiver %d", i);
-      result = esp_now_send(sendAddress[i], (uint8_t *) &sendMsg[i].ledCommand, sizeof(sendMsg[i].ledCommand));
-      if (result == ESP_OK)
-      {
-        sendMsg[i].sendState = RESPONSE_PENDING;
-      }
-      else
-      {
-        if (millis() - sendMsg[i].sendTime > 500)
-        {
-          sendMsg[i].sendState = SEND_IDLE; // Give up
-          Serial.print("Couldn't initiate sending a message to receiver ");
-          Serial.println(i);
-        }
-      }
+      readyToBroadcast = false;
+    }
+    else
+    {
+      Serial.println("Couldn't initiate broadcasting the message ");
+      Serial.println(result);
     }
   }
 }
