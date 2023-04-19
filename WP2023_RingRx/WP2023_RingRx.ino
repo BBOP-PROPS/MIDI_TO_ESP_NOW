@@ -149,7 +149,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
     Serial.println("OnDataRecv: Packet too short");
   }
 }
- 
+
 void setup() {
   //Initialize Serial Monitor
   Serial.begin(115200);
@@ -187,7 +187,7 @@ void setup() {
   }
   
   delay(1000); // Wait a bit for the power to settle before starting the radio
-  
+
   //Set device as a Wi-Fi Station
   WiFi.mode(WIFI_STA);
   uint8_t primary;
@@ -195,7 +195,10 @@ void setup() {
   esp_wifi_get_channel(&primary, &second);
   Serial.print("Primary channel before ");
   Serial.println(primary);
-  esp_wifi_set_channel(13, second);
+  if (esp_wifi_set_channel(13, second) != ESP_OK)
+  {
+    esp_restart();
+  }
   esp_wifi_get_channel(&primary, &second);
   Serial.print("Primary channel after ");
   Serial.println(primary);
@@ -207,12 +210,12 @@ void setup() {
   if (myReceiverNum < 0)
   {
     Serial.println("This mac address isn't in the list!");
-    return;
+    esp_restart();
   }
   //Init ESP-NOW
   if (esp_now_init() != ESP_OK) {
     Serial.println("Error initializing ESP-NOW");
-    return;
+    esp_restart();
   }
   // Once ESPNow is successfully Init, we will register for recv CB to
   // get recv packer info
@@ -231,13 +234,14 @@ void setup() {
       if (esp_now_add_peer(&peerInfo) != ESP_OK)
       {
         Serial.println("Failed to add peer");
-        return;
+        esp_restart();
       }
     }
   }
 
 //  pinMode(22, OUTPUT);
   powerOnDisplay();
+  Serial.println("Finished initialization.");
 }
  
 void loop() {

@@ -373,14 +373,17 @@ void setup() {
   esp_wifi_get_channel(&primary, &second);
   Serial.print("Primary channel before ");
   Serial.println(primary);
-  esp_wifi_set_channel(13, second);
+  if (esp_wifi_set_channel(13, second) != ESP_OK)
+  {
+    esp_restart();
+  }
   esp_wifi_get_channel(&primary, &second);
   Serial.print("Primary channel after ");
   Serial.println(primary);
 
   if (esp_now_init() != ESP_OK) {
     Serial.println("Error initializing ESP-NOW");
-    return;
+    esp_restart();
   }
   Serial.println("Starting Up");
   esp_now_register_send_cb(OnDataSent);
@@ -395,7 +398,7 @@ void setup() {
     if (esp_now_add_peer(&peerInfo) != ESP_OK)
     {
       Serial.println("Failed to add peer");
-      return;
+      esp_restart();
     }
   }
 
@@ -406,6 +409,7 @@ void setup() {
 
   // Initiate MIDI communications, listen to all channels
   MIDI.begin(MIDI_CHANNEL_OMNI);
+  Serial.println("Finished initialization.");
 }
 
 void loop() {
