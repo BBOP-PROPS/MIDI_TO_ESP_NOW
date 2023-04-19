@@ -293,27 +293,32 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
   debug_println("NoteOn: Channel: %d, Pitch: %d, Velocity: %d", channel, pitch, velocity);
 }
 
+bool sendNewBrightness = false;
+uint8_t newBrightness = 255;
+
 void handleControlChange(byte channel, byte data1, byte data2)
 {
-  ledCommand_struct ledCommand;
+//  ledCommand_struct ledCommand;
   switch (data1)
   {
     case 7: // volume knob is 7 and is used for color selector
     {
-      ledCommand.effect = BRIGHTNESS;
-      ledCommand.blendSpeedMSec = 0;
-      ledCommand.data[0] = map(data2,0,127,0,255);
-      debug_println("Brightness: %d", ledCommand.data[0]);
+//      ledCommand.effect = BRIGHTNESS;
+//      ledCommand.blendSpeedMSec = 0;
+//      ledCommand.data[0] = map(data2,0,127,0,255);
+      newBrightness = map(data2,0,127,0,255);
+      debug_println("Brightness: %d", newBrightness);
+      sendNewBrightness = true;
     }
     break;
     default:
     break;
   }
   
-  RequestSendMsg(RINGA, (uint8_t *) &ledCommand, sizeof(ledCommand));
-  RequestSendMsg(RINGB, (uint8_t *) &ledCommand, sizeof(ledCommand));
-  RequestSendMsg(RINGC, (uint8_t *) &ledCommand, sizeof(ledCommand));
-  readyToBroadcast = true;
+//  RequestSendMsg(RINGA, (uint8_t *) &ledCommand, sizeof(ledCommand));
+//  RequestSendMsg(RINGB, (uint8_t *) &ledCommand, sizeof(ledCommand));
+//  RequestSendMsg(RINGC, (uint8_t *) &ledCommand, sizeof(ledCommand));
+//  readyToBroadcast = true;
 
   debug_println("Control Change: Channel: %d, data1: %d, data2: %d", channel, data1, data2);
 }
@@ -433,6 +438,14 @@ void loop() {
   {
     CheckMessagesToSend();
   }
+  EVERY_N_MILLISECONDS(100)
+  {
+    if (sendNewBrightness)
+    {
+      sendNewBrightness = false;
+      SendBrightness();
+    }
+  }
 //  EVERY_N_MILLISECONDS(2000)
 //  {
 //    static uint8_t pitch = 48;
@@ -502,4 +515,16 @@ int8_t LookupReceiver(const uint8_t *mac_addr)
     }
   }
   return receiverNum;
+}
+
+void SendBrightness(void)
+{
+  ledCommand_struct ledCommand;
+  ledCommand.effect = BRIGHTNESS;
+  ledCommand.blendSpeedMSec = 0;
+  ledCommand.data[0] = newBrightness;
+  RequestSendMsg(RINGA, (uint8_t *) &ledCommand, sizeof(ledCommand));
+  RequestSendMsg(RINGB, (uint8_t *) &ledCommand, sizeof(ledCommand));
+  RequestSendMsg(RINGC, (uint8_t *) &ledCommand, sizeof(ledCommand));
+  readyToBroadcast = true;
 }
