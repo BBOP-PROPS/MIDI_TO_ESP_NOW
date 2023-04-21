@@ -36,6 +36,10 @@
    #define debug_println(...)
 #endif
 
+uint8_t ringAbrightness = 255;
+uint8_t ringBbrightness = 255;
+uint8_t ringCbrightness = 255;
+
 // This section should be common to both the receiver and transmitter
 enum ledCommand_e : byte
 {
@@ -276,6 +280,45 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
       ledCommand.data[1] = 0xE9;
       ledCommand.data[2] = 0xA0;
       break;
+    case 77:
+      allSame = false;
+      ringAbrightness = 0;
+      ledCommand.effect = BRIGHTNESS;
+      ledCommand.blendSpeedMSec = 0;
+      ledCommand.data[0] = ringAbrightness;
+      RequestSendMsg(RINGA, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      ledCommand.data[0] = ringBbrightness;
+      RequestSendMsg(RINGB, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      ledCommand.data[0] = ringCbrightness;
+      RequestSendMsg(RINGC, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      readyToBroadcast = true;
+      break;
+    case 78:
+      allSame = false;
+      ringBbrightness = 0;
+      ledCommand.effect = BRIGHTNESS;
+      ledCommand.blendSpeedMSec = 0;
+      ledCommand.data[0] = ringAbrightness;
+      RequestSendMsg(RINGA, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      ledCommand.data[0] = ringBbrightness;
+      RequestSendMsg(RINGB, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      ledCommand.data[0] = ringCbrightness;
+      RequestSendMsg(RINGC, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      readyToBroadcast = true;
+      break;
+    case 79:
+      allSame = false;
+      ringCbrightness = 0;
+      ledCommand.effect = BRIGHTNESS;
+      ledCommand.blendSpeedMSec = 0;
+      ledCommand.data[0] = ringAbrightness;
+      RequestSendMsg(RINGA, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      ledCommand.data[0] = ringBbrightness;
+      RequestSendMsg(RINGB, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      ledCommand.data[0] = ringCbrightness;
+      RequestSendMsg(RINGC, (uint8_t *) &ledCommand, sizeof(ledCommand));
+      readyToBroadcast = true;
+      break;
     default:
       allSame = false;
       break;
@@ -307,6 +350,9 @@ void handleControlChange(byte channel, byte data1, byte data2)
 //      ledCommand.blendSpeedMSec = 0;
 //      ledCommand.data[0] = map(data2,0,127,0,255);
       newBrightness = map(data2,0,127,0,255);
+      ringAbrightness = newBrightness;
+      ringBbrightness = newBrightness;
+      ringCbrightness = newBrightness;
       debug_println("Brightness: %d", newBrightness);
       sendNewBrightness = true;
     }
