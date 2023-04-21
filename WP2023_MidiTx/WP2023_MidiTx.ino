@@ -280,9 +280,10 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
       ledCommand.data[1] = 0xE9;
       ledCommand.data[2] = 0xA0;
       break;
-    case 77:
+    case 76:
       allSame = false;
       ringAbrightness = 0;
+
       ledCommand.effect = BRIGHTNESS;
       ledCommand.blendSpeedMSec = 0;
       ledCommand.data[0] = ringAbrightness;
@@ -293,9 +294,10 @@ void handleNoteOn(byte channel, byte pitch, byte velocity)
       RequestSendMsg(RINGC, (uint8_t *) &ledCommand, sizeof(ledCommand));
       readyToBroadcast = true;
       break;
-    case 78:
+    case 77:
       allSame = false;
       ringBbrightness = 0;
+
       ledCommand.effect = BRIGHTNESS;
       ledCommand.blendSpeedMSec = 0;
       ledCommand.data[0] = ringAbrightness;
