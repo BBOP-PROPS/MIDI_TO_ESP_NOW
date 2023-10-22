@@ -1,6 +1,6 @@
 {
   "board": {
-    "active_layer": 31,
+    "active_layer": 37,
     "active_layer_preset": "All Layers",
     "auto_track_width": true,
     "hidden_netclasses": [],
@@ -41,6 +41,7 @@
       11,
       12,
       13,
+      14,
       15,
       16,
       17,
@@ -61,9 +62,7 @@
       33,
       34,
       35,
-      36,
-      39,
-      40
+      36
     ],
     "visible_layers": "fffffff_ffffffff",
     "zone_display_mode": 0
@@ -73,6 +72,31 @@
     "version": 3
   },
   "project": {
-    "files": []
+    "files": [
+      {
+        "name": "WinterPercussion.kicad_sch",
+        "open": false,
+        "window": {
+          "display": 0,
+          "maximized": false,
+          "pos_x": 73,
+          "pos_y": 0,
+          "size_x": 1835,
+          "size_y": 1036
+        }
+      },
+      {
+        "name": "WinterPercussion.kicad_pcb",
+        "open": false,
+        "window": {
+          "display": 0,
+          "maximized": false,
+          "pos_x": 331,
+          "pos_y": 104,
+          "size_x": 1280,
+          "size_y": 720
+        }
+      }
+    ]
   }
 }
