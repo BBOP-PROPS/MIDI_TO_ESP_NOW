@@ -1,5 +1,5 @@
 # MIDI_TO_ESP_NOW
-Intercept MIDI Keyboard Key Press and cause an action on a remote ESP Device.
+Intercept MIDI Keyboard Key Press and cause an action on a remote ESP Device.  
 
 [ESP-NOW](https://www.espressif.com/en/products/software/esp-now/overview)
 
